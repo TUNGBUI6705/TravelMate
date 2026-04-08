@@ -1,38 +1,30 @@
-import { useState } from 'react';
-import { Outlet } from 'react-router';
-import { Sidebar } from './Sidebar';
-import { Topbar } from './Topbar';
+import { useState } from "react";
+import { Outlet } from "react-router";
+import { Sidebar } from "./Sidebar";
+import { Topbar } from "./Topbar";
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'Poppins, sans-serif' }}>
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-      <div
+    <div>
+      <Sidebar collapsed={collapsed} />
+      <Topbar sidebarCollapsed={collapsed} onToggleSidebar={() => setCollapsed((prev) => !prev)} />
+
+      <main
         style={{
-          marginLeft: collapsed ? 68 : 260,
-          flex: 1,
-          transition: 'margin-left 250ms ease-in-out',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: '100vh',
-          background: '#F0F4F8',
+          marginLeft: collapsed ? 76 : 240,
+          marginTop: 58,
+          transition: "margin-left 200ms ease",
+          minHeight: "calc(100vh - 58px)",
+          padding: 16,
+          background: "#f4f6fb",
         }}
       >
-        <Topbar sidebarCollapsed={collapsed} onToggleSidebar={() => setCollapsed(!collapsed)} />
-        <main
-          style={{
-            flex: 1,
-            marginTop: 60,
-            padding: 28,
-            maxWidth: 1400,
-            width: '100%',
-          }}
-        >
+        <div style={{ maxWidth: 1200 }}>
           <Outlet />
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

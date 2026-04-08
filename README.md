@@ -1,11 +1,30 @@
+# TravelMate Admin
 
-  # TravelMate Admin Dashboard Design
+TravelMate Admin is a simplified admin panel for managing:
 
-  This is a code bundle for TravelMate Admin Dashboard Design. The original project is available at https://www.figma.com/design/VDNXHQi3JqiRujj0ThvMwo/TravelMate-Admin-Dashboard-Design.
+- users
+- places
+- reviews
+- platform settings
 
-  ## Running the code
+The project was cleaned to remove generated design artifacts, heavy unused UI scaffolding, and bundled sample data.
 
-  Run `npm i` to install the dependencies.
+## Development
 
-  Run `npm run dev` to start the development server.
-  
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start dev server:
+
+```bash
+npm run dev
+```
+
+Build production bundle:
+
+```bash
+npm run build
+```
