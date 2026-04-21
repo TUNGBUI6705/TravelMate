@@ -28,7 +28,6 @@ export interface AdminReview {
   status: ReviewStatus;
 }
 
-// Intentionally empty: this admin app is ready to connect to real API data.
 export const usersSeed: AdminUser[] = [];
 export const placesSeed: AdminPlace[] = [];
 export const reviewsSeed: AdminReview[] = [];

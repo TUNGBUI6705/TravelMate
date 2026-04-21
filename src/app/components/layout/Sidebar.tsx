@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Home, MapPin, MessageSquare, Settings, Users } from "lucide-react";
 import { NavLink, useNavigate } from "react-router";
+import { logout } from "../../../config/firebaseUtils";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -15,6 +17,22 @@ const navItems = [
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const navigate = useNavigate();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [error, setError] = useState("");
+
+  const signOut = async () => {
+    try {
+      setIsSigningOut(true);
+      setError("");
+      await logout();
+      navigate("/signin", { replace: true });
+    } catch (signOutError) {
+      console.error(signOutError);
+      setError("Could not sign out. Please try again.");
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <aside
@@ -63,7 +81,8 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
       <div style={{ marginTop: "auto", padding: 10 }}>
         <button
-          onClick={() => navigate("/signin")}
+          onClick={() => void signOut()}
+          disabled={isSigningOut}
           style={{
             width: "100%",
             border: "1px solid rgba(255,255,255,0.2)",
@@ -72,11 +91,12 @@ export function Sidebar({ collapsed }: SidebarProps) {
             borderRadius: 10,
             padding: collapsed ? "10px 8px" : "10px 12px",
             textAlign: collapsed ? "center" : "left",
-            cursor: "pointer",
+            cursor: isSigningOut ? "not-allowed" : "pointer",
           }}
         >
-          {collapsed ? "Out" : "Sign Out"}
+          {isSigningOut ? (collapsed ? "..." : "Signing Out...") : collapsed ? "Out" : "Sign Out"}
         </button>
+        {error && !collapsed && <p style={{ margin: "8px 4px 0", fontSize: 12, color: "#fca5a5" }}>{error}</p>}
       </div>
     </aside>
   );
