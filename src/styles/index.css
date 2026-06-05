@@ -27,8 +27,166 @@ textarea {
   font: inherit;
 }
 
+/* Table Styles */
+.table-container {
+  background: #fff;
+  border: 1px solid #e8ecf3;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-header {
+  background: #f7f9fc;
+}
+
+.table-header th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #5e6b81;
+  border-bottom: 1px solid #e8ecf3;
+}
+
+.table-row td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #eef2f8;
+  color: #1f2a3d;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.table-row:hover td {
+  background: #f7f9fc;
+}
+
+.table-striped tbody tr:nth-child(even) td {
+  background: #fcfcfc;
+}
+
+/* Toolbar Styles */
+.toolbar {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e8ecf3;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+.toolbar input,
+.toolbar select {
+  height: 40px;
+  border: 1px solid #d9e0ea;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.toolbar select {
+  padding: 0 10px;
+}
+
+/* Button Styles */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #d9e0ea;
+  background: #fff;
+  color: #344155;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.action-button:hover {
+  background: #f0f2f5;
+}
+
+.action-button:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Empty State */
+.empty-state {
+  padding: 28px;
+  text-align: center;
+  color: #647087;
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state {
+  padding: 28px;
+  text-align: center;
+}
+
+.error-state {
+  color: #b42318;
+}
+
+.button-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid #bfdbfe;
+  background: #dbeafe;
+  color: #0369a1;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button-secondary:hover {
+  background: #bfdbfe;
+}
+
 @media (max-width: 900px) {
   body {
     font-size: 14px;
+  }
+  
+  .toolbar {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-header th,
+  .table-row td {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+  
+  .action-button {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+  
+  .button-secondary {
+    padding: 5px 8px;
+    font-size: 11px;
   }
 }

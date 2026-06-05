@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { reviewsSeed } from "../data/adminData";
+import { useEffect, useMemo, useState } from "react";
+import { reviewService } from "../../data/services/reviewService.js";
 
 type ReviewFilter = "all" | "pending" | "approved" | "hidden";
 
@@ -10,17 +10,33 @@ function statusStyle(status: string) {
 }
 
 export default function Reviews() {
-  const [reviews, setReviews] = useState(reviewsSeed);
+  const [reviews, setReviews] = useState([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<ReviewFilter>("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    reviewService
+      .getAll()
+      .then((data) => {
+        setReviews(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load reviews:", err);
+        setError("Failed to load reviews");
+        setLoading(false);
+      });
+  }, []);
 
   const filteredReviews = useMemo(() => {
     return reviews.filter((review) => {
       const matchQuery =
         query.trim().length === 0 ||
-        review.placeName.toLowerCase().includes(query.toLowerCase()) ||
-        review.reviewerName.toLowerCase().includes(query.toLowerCase()) ||
-        review.comment.toLowerCase().includes(query.toLowerCase());
+        (review.placeName && review.placeName.toLowerCase().includes(query.toLowerCase())) ||
+        (review.reviewerName && review.reviewerName.toLowerCase().includes(query.toLowerCase())) ||
+        (review.comment && review.comment.toLowerCase().includes(query.toLowerCase()));
       const matchFilter = filter === "all" || review.status === filter;
       return matchQuery && matchFilter;
     });
@@ -29,6 +45,22 @@ export default function Reviews() {
   const updateStatus = (reviewId: string, status: "approved" | "hidden") => {
     setReviews((prev) => prev.map((item) => (item.id === reviewId ? { ...item, status } : item)));
   };
+
+  if (loading) {
+    return (
+      <div style={{ padding: 40, textAlign: "center", color: "#647087" }}>
+        <p>Loading reviews...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, background: "#fef2f2", color: "#b91c1c", borderRadius: 8 }}>
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -39,42 +71,15 @@ export default function Reviews() {
         </p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 180px",
-          gap: 10,
-          background: "#ffffff",
-          border: "1px solid #e8ecf3",
-          borderRadius: 12,
-          padding: 12,
-        }}
-      >
+      <div className="toolbar">
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by place, user or review text..."
-          style={{
-            height: 40,
-            border: "1px solid #d9e0ea",
-            borderRadius: 8,
-            padding: "0 12px",
-            fontSize: 14,
-            outline: "none",
-          }}
         />
         <select
           value={filter}
           onChange={(event) => setFilter(event.target.value as ReviewFilter)}
-          style={{
-            height: 40,
-            border: "1px solid #d9e0ea",
-            borderRadius: 8,
-            padding: "0 10px",
-            fontSize: 14,
-            outline: "none",
-            background: "#fff",
-          }}
         >
           <option value="all">All status</option>
           <option value="pending">Pending</option>
@@ -83,21 +88,12 @@ export default function Reviews() {
         </select>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 12, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="table-container">
+        <table className="table">
           <thead>
-            <tr style={{ background: "#f7f9fc" }}>
+            <tr className="table-header">
               {["Place", "Reviewer", "Rating", "Comment", "Date", "Status", "Action"].map((col) => (
-                <th
-                  key={col}
-                  style={{
-                    textAlign: "left",
-                    padding: "12px 14px",
-                    fontSize: 12,
-                    color: "#5e6b81",
-                    borderBottom: "1px solid #e8ecf3",
-                  }}
-                >
+                <th key={col}>
                   {col}
                 </th>
               ))}
@@ -107,59 +103,31 @@ export default function Reviews() {
             {filteredReviews.map((review) => {
               const badge = statusStyle(review.status);
               return (
-                <tr key={review.id}>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#1f2a3d", fontWeight: 600 }}>
-                    {review.placeName}
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72" }}>{review.reviewerName}</td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72" }}>{review.rating}/5</td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72", maxWidth: 420 }}>
+                <tr key={review.id} className="table-row">
+                  <td style={{ fontWeight: 600 }}>{review.placeName || "N/A"}</td>
+                  <td style={{ color: "#4d5a72" }}>{review.reviewerName || "N/A"}</td>
+                  <td style={{ color: "#4d5a72" }}>{review.rating || 0}/5</td>
+                  <td style={{ maxWidth: 420 }}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                      {review.comment}
+                      {review.comment || "N/A"}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72" }}>{review.submittedAt}</td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8" }}>
-                    <span
-                      style={{
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        background: badge.bg,
-                        color: badge.color,
-                        fontSize: 12,
-                        fontWeight: 600,
-                        textTransform: "capitalize",
-                      }}
-                    >
-                      {review.status}
+                  <td style={{ color: "#4d5a72" }}>{review.submittedAt || review.createdAt || "N/A"}</td>
+                  <td>
+                    <span className="status-badge" style={{ background: badge.bg, color: badge.color }}>
+                      {review.status || "unknown"}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", display: "flex", gap: 8 }}>
+                  <td style={{ display: "flex", gap: 8 }}>
                     <button
+                      className="action-button"
                       onClick={() => updateStatus(review.id, "approved")}
-                      style={{
-                        border: "1px solid #d9e0ea",
-                        background: "#fff",
-                        color: "#344155",
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        fontSize: 12,
-                      }}
                     >
                       Approve
                     </button>
                     <button
+                      className="action-button"
                       onClick={() => updateStatus(review.id, "hidden")}
-                      style={{
-                        border: "1px solid #d9e0ea",
-                        background: "#fff",
-                        color: "#344155",
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        fontSize: 12,
-                      }}
                     >
                       Hide
                     </button>
@@ -170,8 +138,8 @@ export default function Reviews() {
           </tbody>
         </table>
 
-        {filteredReviews.length === 0 && (
-          <div style={{ padding: 28, textAlign: "center", color: "#647087" }}>
+        {!filteredReviews.length && (
+          <div className="empty-state">
             No review data yet. Reviews will appear after connecting your backend.
           </div>
         )}

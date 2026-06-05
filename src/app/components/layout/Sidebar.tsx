@@ -1,4 +1,4 @@
-import { Home, MapPin, MessageSquare, Settings, Users } from "lucide-react";
+import { Briefcase, CreditCard, Home, MapPin, MessageSquare, Settings, Users } from "lucide-react";
 import { NavLink, useNavigate } from "react-router";
 
 interface SidebarProps {
@@ -8,7 +8,9 @@ interface SidebarProps {
 const navItems = [
   { icon: Home, label: "Dashboard", path: "/dashboard" },
   { icon: Users, label: "Users", path: "/users" },
-  { icon: MapPin, label: "Places", path: "/places" },
+  { icon: MapPin, label: "Destinations", path: "/places" },
+  { icon: Briefcase, label: "Trips", path: "/trips" },
+  { icon: CreditCard, label: "Expenses", path: "/expenses" },
   { icon: MessageSquare, label: "Reviews", path: "/reviews" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];

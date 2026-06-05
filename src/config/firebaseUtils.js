@@ -1,20 +1,9 @@
 import {
-  signInWithEmailAndPassword,
-  signOut,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
 } from "firebase/auth";
-import {
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-} from "firebase/firestore";
-import { auth, db, isFirebaseConfigured } from "./firebase.js";
+import { auth, isFirebaseConfigured } from "./firebase.js";
 
 console.log("🚀 Firebase utilities initialized");
 
@@ -22,82 +11,25 @@ export const signIn = (email, password) => {
   console.log("🔐 Signing in with email/password...");
   if (!isFirebaseConfigured) {
     const err = new Error("Firebase is not configured. Check VITE_FIREBASE_* env vars.");
-    // mimic firebase error shape where possible
     err.code = "auth/api-key-not-valid";
     return Promise.reject(err);
   }
+
   return signInWithEmailAndPassword(auth, email, password);
 };
 
-export const logout = () => {
-  console.log("👋 Signing out...");
-  return signOut(auth);
+export const signOutUser = () => {
+  console.log("🚪 Signing out...");
+  return firebaseSignOut(auth);
 };
 
 export const onAuthChange = (callback) => {
-  console.log("📋 Setting up auth state listener...");
   return onAuthStateChanged(auth, (user) => {
     if (user) {
-      console.log("✅ User authenticated:", user.email, "uid:", user.uid);
+      console.log(`👤 User signed in: ${user.email}`);
     } else {
-      console.log("⚠️ No authenticated user");
+      console.log("👤 User signed out");
     }
     callback(user);
   });
 };
-
-export const createUser = (uid, userData) =>
-  setDoc(doc(db, "users", uid), userData);
-
-export const getUser = (uid) =>
-  getDoc(doc(db, "users", uid)).then((doc) => doc.data());
-
-export const updateUser = (uid, userData) =>
-  updateDoc(doc(db, "users", uid), userData);
-
-export const deleteUser = (uid) =>
-  deleteDoc(doc(db, "users", uid));
-
-export const addDocument = (collectionName, data) =>
-  setDoc(doc(collection(db, collectionName)), data);
-
-export const getDocument = (collectionName, docId) =>
-  getDoc(doc(db, collectionName, docId)).then((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-export const getCollectionDocuments = (collectionName) =>
-  getDocs(collection(db, collectionName)).then((snapshot) =>
-    snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-  );
-
-export const queryCollection = (
-  collectionName,
-  field,
-  operator,
-  value
-) => {
-  const q = query(
-    collection(db, collectionName),
-    where(field, operator, value)
-  );
-  return getDocs(q).then((snapshot) =>
-    snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-  );
-};
-
-export const updateDocument = (
-  collectionName,
-  docId,
-  data
-) => updateDoc(doc(db, collectionName, docId), data);
-
-export const deleteDocument = (collectionName, docId) =>
-  deleteDoc(doc(db, collectionName, docId));

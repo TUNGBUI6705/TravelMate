@@ -289,21 +289,10 @@ export default function PlaceDetails() {
           />
           <div style={{ padding: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button
+              className="action-button"
               onClick={getDirections}
               disabled={loadingDirections}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 16px",
-                background: loadingDirections ? "#ccc" : "#0369a1",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: loadingDirections ? "wait" : "pointer",
-              }}
+              style={{ cursor: loadingDirections ? "wait" : "inherit" }}
             >
               <Navigation size={16} />
               {loadingDirections ? "Getting directions..." : "Get Directions"}
@@ -313,20 +302,7 @@ export default function PlaceDetails() {
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "10px 16px",
-                  background: "#dbeafe",
-                  color: "#0369a1",
-                  border: "1px solid #bfdbfe",
-                  borderRadius: 6,
-                  textDecoration: "none",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
+                className="button-secondary"
               >
                 <ExternalLink size={14} />
                 View on Google Maps

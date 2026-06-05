@@ -1,32 +1,19 @@
 import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
+  equalTo,
+  get,
+  orderByChild,
+  push,
   query,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+  ref,
+  remove,
+  update,
+  set,
+} from "firebase/database";
 import { db } from "../../config/firebase.js";
-import { mapDoc, mapQueryDoc } from "./firestoreMapper.js";
 
-const COLLECTION_NAME = "places";
-
-const placeCollection = () => collection(db, COLLECTION_NAME);
-
-const placeDoc = (id) => doc(db, COLLECTION_NAME, id);
-
-/**
- * @typedef {Object} GooglePlaceInfo
- * @property {number|null} googleRating
- * @property {number|null} googleTotalRatings
- * @property {string|null} googleMapsUrl
- * @property {string[]} photos
- */
+const COLLECTION_NAME = "destinations";
+const placesRef = () => ref(db, COLLECTION_NAME);
+const placeRef = (id) => ref(db, `${COLLECTION_NAME}/${id}`);
 
 const readGoogleMapsApiKey = () => {
   const env = import.meta.env;
@@ -41,16 +28,55 @@ const buildPhotoUrl = (photoReference, apiKey) => {
   return photoUrl.toString();
 };
 
+const formatTimestamp = (value) => {
+  if (value == null) return "";
+  if (typeof value === "number") return new Date(value).toLocaleDateString();
+  if (typeof value === "string") {
+    const numberValue = Number(value);
+    if (!Number.isNaN(numberValue)) return new Date(numberValue).toLocaleDateString();
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? value : date.toLocaleDateString();
+  }
+  return String(value);
+};
+
+const normalizePlaceRecord = (record, id) => {
+  if (!record) return null;
+
+  return {
+    id,
+    name: record.name || record.title || "Untitled place",
+    location: record.location || record.address || "Unknown location",
+    category: record.category || record.type || "uncategorized",
+    status: record.status || "draft",
+    createdAt: formatTimestamp(record.createdAt),
+    updatedAt: formatTimestamp(record.updatedAt),
+    ...record,
+  };
+};
+
+const normalizeSnapshotValue = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => normalizePlaceRecord(item, String(index)))
+      .filter(Boolean);
+  }
+  return Object.entries(value)
+    .map(([key, item]) => normalizePlaceRecord(item, key))
+    .filter(Boolean);
+};
+
 export const placeService = {
   async getAll() {
     try {
-      const snapshot = await getDocs(placeCollection());
-      console.log(`✅ Loaded ${snapshot.docs.length} places from Firebase`);
-      return snapshot.docs.map((item) => mapQueryDoc(item));
+      const snapshot = await get(placesRef());
+      const places = normalizeSnapshotValue(snapshot.val());
+      console.log(`✅ Loaded ${places.length} places from Firebase Realtime Database`);
+      return places;
     } catch (err) {
-      // Improve error message for permission issues to help debugging
       if (err && err.code && err.code.includes("permission")) {
-        const e = new Error("Firestore permission denied. Check your Firestore security rules and authenticated user permissions.");
+        const e = new Error("Realtime Database permission denied. Check your database rules and authenticated user permissions.");
         e.code = err.code;
         throw e;
       }
@@ -59,59 +85,59 @@ export const placeService = {
   },
 
   async getById(id) {
-    const snapshot = await getDoc(placeDoc(id));
-    return mapDoc(snapshot);
+    const snapshot = await get(placeRef(id));
+    return snapshot.exists() ? normalizePlaceRecord(snapshot.val(), snapshot.key) : null;
   },
 
   async add(data) {
     const payload = {
       ...data,
-      createdAt: data.createdAt ?? serverTimestamp(),
-      updatedAt: data.updatedAt ?? serverTimestamp(),
+      createdAt: data.createdAt ?? Date.now(),
+      updatedAt: data.updatedAt ?? Date.now(),
       status: data.status ?? "active",
     };
 
     if (data.id) {
-      await setDoc(placeDoc(data.id), payload);
+      await set(placeRef(data.id), payload);
       return data.id;
     }
 
-    const ref = await addDoc(placeCollection(), payload);
-    return ref.id;
+    const result = await push(placesRef(), payload);
+    return result.key;
   },
 
   async update(id, data) {
-    await updateDoc(placeDoc(id), {
+    await update(placeRef(id), {
       ...data,
-      updatedAt: serverTimestamp(),
+      updatedAt: Date.now(),
     });
     return placeService.getById(id);
   },
 
   async delete(id) {
-    await deleteDoc(placeDoc(id));
+    await remove(placeRef(id));
   },
 
   async hide(id) {
-    await updateDoc(placeDoc(id), {
+    await update(placeRef(id), {
       status: "hidden",
-      updatedAt: serverTimestamp(),
+      updatedAt: Date.now(),
     });
     return placeService.getById(id);
   },
 
   async show(id) {
-    await updateDoc(placeDoc(id), {
+    await update(placeRef(id), {
       status: "active",
-      updatedAt: serverTimestamp(),
+      updatedAt: Date.now(),
     });
     return placeService.getById(id);
   },
 
   async filterByType(type) {
-    const placesQuery = query(placeCollection(), where("type", "==", type));
-    const snapshot = await getDocs(placesQuery);
-    return snapshot.docs.map((item) => mapQueryDoc(item));
+    const placesQuery = query(placesRef(), orderByChild("type"), equalTo(type));
+    const snapshot = await get(placesQuery);
+    return normalizeSnapshotValue(snapshot.val());
   },
 
   async search(keyword) {
@@ -122,8 +148,8 @@ export const placeService = {
 
     const places = await placeService.getAll();
     return places.filter((item) => {
-      const name = item.name.toLowerCase();
-      const province = item.province.toLowerCase();
+      const name = (item.name || "").toLowerCase();
+      const province = (item.province || "").toLowerCase();
       return name.includes(normalized) || province.includes(normalized);
     });
   },

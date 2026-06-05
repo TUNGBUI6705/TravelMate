@@ -1,10 +1,32 @@
-import { useMemo, useState } from "react";
-import { placesSeed } from "../data/adminData";
+import { useEffect, useMemo, useState } from "react";
+import { placeService } from "../../data/services/placeService.js";
 
 export default function PlaceList() {
-  const [places] = useState(placesSeed);
+  const [places, setPlaces] = useState([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadPlaces = async () => {
+      try {
+        const data = await placeService.getAll();
+        if (!isMounted) return;
+        setPlaces(data);
+      } catch (err) {
+        if (!isMounted) return;
+        setError(err instanceof Error ? err.message : String(err));
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    loadPlaces();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const categories = useMemo(() => {
     const set = new Set(places.map((place) => place.category));
@@ -15,8 +37,8 @@ export default function PlaceList() {
     return places.filter((place) => {
       const matchQuery =
         query.trim().length === 0 ||
-        place.name.toLowerCase().includes(query.toLowerCase()) ||
-        place.location.toLowerCase().includes(query.toLowerCase());
+        (place.name || "").toLowerCase().includes(query.toLowerCase()) ||
+        (place.location || "").toLowerCase().includes(query.toLowerCase());
       const matchCategory = category === "all" || place.category === category;
       return matchQuery && matchCategory;
     });
@@ -25,9 +47,9 @@ export default function PlaceList() {
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: 28, color: "#1f2a3d" }}>Place Management</h1>
+        <h1 style={{ margin: 0, fontSize: 28, color: "#1f2a3d" }}>Destination Management</h1>
         <p style={{ margin: "8px 0 0", color: "#647087" }}>
-          Lightweight place listing for admin operations.
+          Full destination listing loaded from Realtime Database.
         </p>
       </div>
 
@@ -77,7 +99,18 @@ export default function PlaceList() {
       </div>
 
       <div style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 12, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        {loading && (
+          <div style={{ padding: 28, textAlign: "center", color: "#647087" }}>
+            Loading places from backend...
+          </div>
+        )}
+        {error && (
+          <div style={{ padding: 28, textAlign: "center", color: "#b42318" }}>
+            Error loading places: {error}
+          </div>
+        )}
+        {!loading && !error && (
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#f7f9fc" }}>
               {["ID", "Name", "Location", "Category", "Status"].map((col) => (
@@ -112,8 +145,9 @@ export default function PlaceList() {
             ))}
           </tbody>
         </table>
+        )}
 
-        {filteredPlaces.length === 0 && (
+        {!loading && !error && filteredPlaces.length === 0 && (
           <div style={{ padding: 28, textAlign: "center", color: "#647087" }}>
             No place data yet. Add real data from your backend source.
           </div>

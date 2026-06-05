@@ -1,34 +1,43 @@
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  orderBy,
+  equalTo,
+  get,
+  orderByChild,
   query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+  ref,
+  remove,
+  update,
+} from "firebase/database";
 import { db } from "../../config/firebase.js";
-import { mapDoc, mapQueryDoc } from "./firestoreMapper.js";
 
 const COLLECTION_NAME = "users";
+const usersRef = () => ref(db, COLLECTION_NAME);
+const userRef = (uid) => ref(db, `${COLLECTION_NAME}/${uid}`);
 
-const userCollection = () => collection(db, COLLECTION_NAME);
+const normalizeSnapshotValue = (value) => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.map((item, index) => ({ id: String(index), ...(item || {}) })).filter(Boolean);
+  }
 
-const userDoc = (uid) => doc(db, COLLECTION_NAME, uid);
+  return Object.entries(value)
+    .map(([key, item]) => ({ id: key, ...(item || {}) }))
+    .filter(Boolean);
+};
 
 export const userService = {
   async getAll() {
     try {
-      const usersQuery = query(userCollection(), orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(usersQuery);
-      console.log(`✅ Loaded ${snapshot.docs.length} users from Firebase`);
-      return snapshot.docs.map((item) => mapQueryDoc(item));
+      const snapshot = await get(usersRef());
+      const users = normalizeSnapshotValue(snapshot.val()).sort((a, b) => {
+        const aCreated = Number(a.createdAt) || 0;
+        const bCreated = Number(b.createdAt) || 0;
+        return bCreated - aCreated;
+      });
+      console.log(`✅ Loaded ${users.length} users from Firebase Realtime Database`);
+      return users;
     } catch (err) {
       if (err && err.code && err.code.includes("permission")) {
-        const e = new Error("Firestore permission denied. Check your Firestore security rules and authenticated user permissions.");
+        const e = new Error("Realtime Database permission denied. Check your database rules and authenticated user permissions.");
         e.code = err.code;
         throw e;
       }
@@ -37,26 +46,26 @@ export const userService = {
   },
 
   async getById(uid) {
-    const snapshot = await getDoc(userDoc(uid));
-    return mapDoc(snapshot);
+    const snapshot = await get(userRef(uid));
+    return snapshot.exists() ? { id: snapshot.key, ...(snapshot.val() || {}) } : null;
   },
 
   async update(uid, data) {
-    await updateDoc(userDoc(uid), data);
+    await update(userRef(uid), data);
     return userService.getById(uid);
   },
 
   async ban(uid, reason) {
-    await updateDoc(userDoc(uid), {
+    await update(userRef(uid), {
       status: "banned",
       bannedReason: reason,
-      bannedAt: serverTimestamp(),
+      bannedAt: Date.now(),
     });
     return userService.getById(uid);
   },
 
   async unban(uid) {
-    await updateDoc(userDoc(uid), {
+    await update(userRef(uid), {
       status: "active",
       bannedReason: null,
       bannedAt: null,
@@ -65,26 +74,23 @@ export const userService = {
   },
 
   async delete(uid) {
-    await deleteDoc(userDoc(uid));
+    await remove(userRef(uid));
   },
 
   async filterByStatus(status) {
-    const usersQuery = query(userCollection(), where("status", "==", status));
-    const snapshot = await getDocs(usersQuery);
-    return snapshot.docs.map((item) => mapQueryDoc(item));
+    const usersQuery = query(usersRef(), orderByChild("status"), equalTo(status));
+    const snapshot = await get(usersQuery);
+    return normalizeSnapshotValue(snapshot.val());
   },
 
   async search(keyword) {
     const normalized = keyword.trim().toLowerCase();
-    if (!normalized) {
-      return userService.getAll();
-    }
-
     const users = await userService.getAll();
     return users.filter((item) => {
-      const displayName = item.displayName.toLowerCase();
-      const email = item.email.toLowerCase();
-      return displayName.includes(normalized) || email.includes(normalized);
+      const displayName = String(item.fullName || item.displayName || "").toLowerCase();
+      const email = String(item.email || "").toLowerCase();
+      const id = String(item.id || "").toLowerCase();
+      return displayName.includes(normalized) || email.includes(normalized) || id.includes(normalized);
     });
   },
 };
