@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Menu, Bell, Search, User } from "lucide-react";
 import { useLocation } from "react-router";
 
 interface TopbarProps {
@@ -7,16 +7,18 @@ interface TopbarProps {
 }
 
 const routeLabels: Record<string, string> = {
-  "/dashboard": "Dashboard",
+  "/dashboard": "Overview",
   "/users": "User Management",
-  "/places": "Place Management",
-  "/reviews": "Review Management",
-  "/settings": "Settings",
+  "/places": "Destinations",
+  "/trips": "Trip Monitoring",
+  "/expenses": "Financial Analytics",
+  "/reviews": "Content Moderation",
+  "/settings": "System Settings",
 };
 
 export function Topbar({ sidebarCollapsed, onToggleSidebar }: TopbarProps) {
   const location = useLocation();
-  const title = routeLabels[location.pathname] || "TravelMate Admin";
+  const title = routeLabels[location.pathname] || "Admin Panel";
 
   return (
     <header
@@ -25,40 +27,69 @@ export function Topbar({ sidebarCollapsed, onToggleSidebar }: TopbarProps) {
         left: sidebarCollapsed ? 76 : 240,
         right: 0,
         top: 0,
-        height: 58,
+        height: 64,
         transition: "left 200ms ease",
         borderBottom: "1px solid #e8ecf3",
-        background: "#fff",
+        background: "#ffffff",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 14px",
+        padding: "0 24px",
         zIndex: 50,
+        boxShadow: "0 1px 2px rgba(0,0,0,0.03)"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <button
           onClick={onToggleSidebar}
           style={{
-            border: "1px solid #d9e0ea",
-            background: "#fff",
+            border: "none",
+            background: "#f1f5f9",
+            color: "#647087",
             borderRadius: 8,
-            width: 34,
-            height: 34,
+            width: 36,
+            height: 36,
             display: "grid",
             placeItems: "center",
             cursor: "pointer",
           }}
           aria-label="Toggle sidebar"
         >
-          <Menu size={17} />
+          <Menu size={20} />
         </button>
-        <h2 style={{ margin: 0, fontSize: 16, color: "#1f2a3d" }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>{title}</h2>
       </div>
 
-      <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>
-        Admin Workspace
-      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <Search size={18} color="#94a3b8" style={{ position: "absolute", left: 10 }} />
+          <input
+            placeholder="Search anything..."
+            style={{
+              background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8,
+              padding: "8px 12px 8px 34px", fontSize: 13, outline: "none", width: 220
+            }}
+          />
+        </div>
+
+        <button style={{ border: "none", background: "none", color: "#647087", cursor: "pointer", position: "relative" }}>
+          <Bell size={20} />
+          <div style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, background: "#ef4444", borderRadius: "50%", border: "2px solid #fff" }}></div>
+        </button>
+
+        <div style={{ height: 24, width: 1, background: "#e2e8f0" }}></div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1f2a3d" }}>Admin User</p>
+            <p style={{ margin: 0, fontSize: 11, color: "#647087" }}>Super Admin</p>
+          </div>
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+            <User size={20} />
+          </div>
+        </div>
+      </div>
     </header>
   );
 }
+

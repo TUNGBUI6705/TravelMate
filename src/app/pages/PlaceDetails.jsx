@@ -2,7 +2,7 @@ import { useParams, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { placeService } from "../../data/services/placeService.js";
 import { formatDateValue } from "../utils/date.js";
-import { MapPin, Star, ExternalLink, Navigation, Phone, Globe } from "lucide-react";
+import { MapPin, Star, ExternalLink, Navigation, Phone, Globe, ChevronLeft, Calendar, Info, DollarSign } from "lucide-react";
 import { openRouteService } from "../../data/services/openRouteService.js";
 
 export default function PlaceDetails() {
@@ -17,398 +17,192 @@ export default function PlaceDetails() {
 
   useEffect(() => {
     let isMounted = true;
-
     const loadPlace = async () => {
       try {
         setIsLoading(true);
-        setError("");
-        console.log("🔍 Loading place details for:", placeId);
         const data = await placeService.getById(placeId);
-
         if (!isMounted) return;
-
-        if (!data) {
-          setError("Place not found");
-        } else {
-          setPlace(data);
-          console.log("✅ Loaded place:", data);
-        }
+        if (!data) setError("Place not found");
+        else setPlace(data);
       } catch (err) {
-        console.error("❌ Failed to load place:", err);
-        if (!isMounted) return;
-        setError("Failed to load place details");
+        if (isMounted) setError("Failed to load place details");
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
-
     loadPlace();
 
-    // Get user's location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (isMounted) {
-            setUserLocation({
-              lat: position.coords.latitude,
-              lng: position.coords.longitude,
-            });
-          }
-        },
-        (error) => {
-          console.log("Location permission denied:", error.message);
-        }
+        (p) => isMounted && setUserLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
+        () => console.log("Location denied")
       );
     }
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [placeId]);
 
   const getDirections = async () => {
-    if (!place?.coordinates) {
-      alert("Place coordinates not available");
-      return;
-    }
-
-    if (!userLocation) {
-      alert("Please enable location permission to get directions");
-      return;
-    }
-
+    if (!place?.coordinates || !userLocation) return;
     try {
       setLoadingDirections(true);
-      setError("");
-
-      // Use centralized OpenRoute Service helper
       const data = await openRouteService.getDirections(
-        userLocation.lat,
-        userLocation.lng,
-        place.coordinates.lat,
-        place.coordinates.lng,
-        'driving-car'
+        userLocation.lat, userLocation.lng,
+        place.coordinates.lat, place.coordinates.lng, 'driving-car'
       );
-
-      if (!data) {
-        // fallback to Google Maps
-        const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${place.coordinates.lat},${place.coordinates.lng}`;
-        window.open(googleMapsUrl, "_blank");
-        return;
-      }
-
-      const route = data.routes?.[0];
-      if (route) {
+      if (data?.routes?.[0]) {
+        const route = data.routes[0];
         setDirections({
-          distance: ((route.summary?.distance ?? 0) / 1000).toFixed(2), // km
-          duration: Math.round((route.summary?.duration ?? 0) / 60), // minutes
-          route: route,
+          distance: (route.summary.distance / 1000).toFixed(1),
+          duration: Math.round(route.summary.duration / 60)
         });
       }
     } catch (err) {
-      console.error("❌ Failed to get directions:", err);
-      // Fallback to Google Maps
-      const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${place.coordinates.lat},${place.coordinates.lng}`;
-      window.open(googleMapsUrl, "_blank");
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${place.coordinates.lat},${place.coordinates.lng}`;
+      window.open(url, "_blank");
     } finally {
       setLoadingDirections(false);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div style={{ display: "grid", gap: 14 }}>
-        <button
-          onClick={() => navigate("/places")}
-          style={{
-            padding: "6px 12px",
-            background: "transparent",
-            border: "1px solid #d9e0ea",
-            borderRadius: 6,
-            cursor: "pointer",
-            fontSize: 13,
-            width: "fit-content",
-          }}
-        >
-          ← Back to Places
-        </button>
-        <div style={{ padding: 40, textAlign: "center", color: "#647087" }}>
-          <p>Loading place details...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !place) {
-    return (
-      <div style={{ display: "grid", gap: 14 }}>
-        <button
-          onClick={() => navigate("/places")}
-          style={{
-            padding: "6px 12px",
-            background: "transparent",
-            border: "1px solid #d9e0ea",
-            borderRadius: 6,
-            cursor: "pointer",
-            fontSize: 13,
-            width: "fit-content",
-          }}
-        >
-          ← Back to Places
-        </button>
-        <div style={{ padding: 20, background: "#fef2f2", color: "#b91c1c", borderRadius: 8 }}>
-          {error || "Place not found"}
-        </div>
-      </div>
-    );
-  }
-
-  // Generate map embed URL
-  const mapEmbedUrl = place.coordinates
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${place.coordinates.lng - 0.01},${place.coordinates.lat - 0.01},${place.coordinates.lng + 0.01},${place.coordinates.lat + 0.01}&layer=mapnik&marker=${place.coordinates.lat},${place.coordinates.lng}`
-    : null;
-
-  const googleMapsUrl = place.coordinates
-    ? `https://maps.google.com/?q=${place.coordinates.lat},${place.coordinates.lng}`
-    : null;
+  if (isLoading) return <div style={{ padding: 60, textAlign: "center", color: "#647087" }}>Loading details...</div>;
+  if (error || !place) return <div style={{ padding: 40, background: "#fef2f2", color: "#b91c1c", borderRadius: 12 }}>{error || "Place not found"}</div>;
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
+    <div style={{ display: "grid", gap: 24 }}>
       <button
         onClick={() => navigate("/places")}
-        style={{
-          padding: "6px 12px",
-          background: "transparent",
-          border: "1px solid #d9e0ea",
-          borderRadius: 6,
-          cursor: "pointer",
-          fontSize: 13,
-          width: "fit-content",
-        }}
+        style={{ display: "flex", alignItems: "center", gap: 8, border: "none", background: "none", color: "#3b82f6", fontWeight: 600, cursor: "pointer", padding: 0 }}
       >
-        ← Back to Places
+        <ChevronLeft size={20} /> Back to Destinations
       </button>
 
-      <div style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 8, overflow: "hidden" }}>
-        {place.coverImage && (
-          <img
-            src={place.coverImage}
-            alt={place.name}
-            style={{ width: "100%", height: 400, objectFit: "cover" }}
-          />
-        )}
-
-        <div style={{ padding: 24 }}>
-          <div style={{ display: "flex", alignItems: "start", gap: 16, marginBottom: 20 }}>
-            <div style={{ flex: 1 }}>
-              <h1 style={{ margin: 0, fontSize: 32, color: "#1f2a3d", fontWeight: 600 }}>
-                {place.name || "Unnamed Place"}
-              </h1>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, color: "#647087" }}>
-                <MapPin size={16} />
-                <span>{place.city || "Unknown"}, {place.province || "Unknown"}</span>
+      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 24 }}>
+        {/* Left Column: Image & Main Info */}
+        <div style={{ display: "grid", gap: 24 }}>
+          <div style={{ background: "#fff", borderRadius: 16, overflow: "hidden", border: "1px solid #e8ecf3" }}>
+            <div style={{ height: 400, position: "relative" }}>
+              <img
+                src={place.coverImage || "https://images.unsplash.com/photo-1469474968028-56623f02e42e"}
+                alt={place.name}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 32, background: "linear-gradient(transparent, rgba(0,0,0,0.8))", color: "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end" }}>
+                  <div>
+                    <span style={{ background: "#3b82f6", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>{place.type || place.category}</span>
+                    <h1 style={{ margin: "12px 0 8px", fontSize: 40, fontWeight: 700 }}>{place.name}</h1>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, opacity: 0.9 }}>
+                      <MapPin size={18} />
+                      {place.location || `${place.city}, ${place.province}`}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.2)", padding: "8px 16px", borderRadius: 12, backdropFilter: "blur(8px)" }}>
+                      <Star size={20} fill="#f59e0b" color="#f59e0b" />
+                      <span style={{ fontSize: 20, fontWeight: 700 }}>{place.stats?.avgRating?.toFixed(1) || "4.5"}</span>
+                    </div>
+                    <p style={{ margin: "4px 0 0", fontSize: 13, opacity: 0.8 }}>{place.stats?.totalReviews || 0} Reviews</p>
+                  </div>
+                </div>
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Star size={20} color="#f59e0b" fill="#f59e0b" />
-              <div>
-                <p style={{ margin: 0, fontSize: 18, fontWeight: 600, color: "#1f2a3d" }}>
-                  {place.stats?.avgRating?.toFixed(1) || "N/A"}
-                </p>
-                <p style={{ margin: "2px 0 0", fontSize: 12, color: "#647087" }}>
-                  {place.stats?.totalReviews || 0} reviews
-                </p>
-              </div>
-            </div>
-          </div>
 
-          <p style={{ margin: 0, fontSize: 15, color: "#647087", lineHeight: 1.6 }}>
-            {place.description || "No description provided"}
-          </p>
-
-          <div style={{ marginTop: 24, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
-            <div style={{ padding: 12, background: "#f0f9ff", borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#0369a1", fontWeight: 600 }}>Type</p>
-              <p style={{ margin: "4px 0 0", fontSize: 14, color: "#1f2a3d", fontWeight: 600 }}>
-                {place.type || "N/A"}
+            <div style={{ padding: 32 }}>
+              <h3 style={{ margin: "0 0 16px", fontSize: 20, color: "#1f2a3d", fontWeight: 700 }}>Description</h3>
+              <p style={{ margin: 0, fontSize: 16, color: "#475569", lineHeight: 1.8 }}>
+                {place.description || "No description available for this beautiful destination. It's a must-visit spot that offers unique experiences and breathtaking views."}
               </p>
             </div>
-            <div style={{ padding: 12, background: "#f0f9ff", borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#0369a1", fontWeight: 600 }}>Entry Fee</p>
-              <p style={{ margin: "4px 0 0", fontSize: 14, color: "#1f2a3d", fontWeight: 600 }}>
-                {!place.entryFee ? "Free" : `${(place.entryFee ?? 0).toLocaleString()} VND`}
-              </p>
-            </div>
-            <div style={{ padding: 12, background: "#f0f9ff", borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#0369a1", fontWeight: 600 }}>Status</p>
-              <p
-                style={{
-                  margin: "4px 0 0",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: (place.status || "unknown") === "active" ? "#15803d" : "#991b1b",
-                }}
-              >
-                {place.status || "Unknown"}
-              </p>
-            </div>
-            <div style={{ padding: 12, background: "#f0f9ff", borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#0369a1", fontWeight: 600 }}>Created</p>
-              <p style={{ margin: "4px 0 0", fontSize: 14, color: "#1f2a3d", fontWeight: 600 }}>
-                {formatDateValue(place.createdAt)}
-              </p>
-            </div>
-          </div>
-
-          {place.coordinates && (
-            <div style={{ marginTop: 24, padding: 12, background: "#f0f9ff", borderRadius: 8 }}>
-              <p style={{ margin: 0, fontSize: 12, color: "#0369a1", fontWeight: 600 }}>Coordinates</p>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#1f2a3d", fontFamily: "monospace" }}>
-                Lat: {(place.coordinates?.lat ?? 0).toFixed(4)} | Lng: {(place.coordinates?.lng ?? 0).toFixed(4)}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Map Section */}
-      {place.coordinates && mapEmbedUrl && (
-        <div style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 8, overflow: "hidden" }}>
-          <div style={{ padding: 16, borderBottom: "1px solid #e8ecf3" }}>
-            <h2 style={{ margin: 0, fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>Location Map</h2>
-          </div>
-          <iframe
-            width="100%"
-            height="400"
-            src={mapEmbedUrl}
-            style={{ border: 0, display: "block" }}
-            title="Place location map"
-            allow="geolocation"
-          />
-          <div style={{ padding: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              className="action-button"
-              onClick={getDirections}
-              disabled={loadingDirections}
-              style={{ cursor: loadingDirections ? "wait" : "inherit" }}
-            >
-              <Navigation size={16} />
-              {loadingDirections ? "Getting directions..." : "Get Directions"}
-            </button>
-            {googleMapsUrl && (
-              <a
-                href={googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="button-secondary"
-              >
-                <ExternalLink size={14} />
-                View on Google Maps
-              </a>
-            )}
           </div>
         </div>
-      )}
 
-      {/* Directions Info */}
-      {directions && (
-        <div
-          style={{
-            padding: 16,
-            background: "#ecfdf5",
-            border: "1px solid #a7f3d0",
-            borderRadius: 8,
-            color: "#065f46",
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, marginBottom: 8 }}>
-            Route Information
-          </h3>
-          <p style={{ margin: 0, fontSize: 13 }}>
-            📍 <strong>Distance:</strong> {directions.distance} km
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: 13 }}>
-            ⏱️ <strong>Estimated Time:</strong> {directions.duration} minutes
-          </p>
-        </div>
-      )}
-
-      {/* Contact & Website Info */}
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid #e8ecf3",
-          borderRadius: 8,
-          padding: 16,
-        }}
-      >
-        <h2 style={{ margin: "0 0 12px", fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>
-          Additional Information
-        </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 12 }}>
-          {place.phone && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 12, background: "#f9fafb", borderRadius: 6 }}>
-              <Phone size={16} color="#0369a1" />
-              <div>
-                <p style={{ margin: 0, fontSize: 12, color: "#647087" }}>Phone</p>
-                <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, color: "#1f2a3d" }}>
-                  {place.phone}
-                </p>
+        {/* Right Column: Quick Stats & Map */}
+        <div style={{ display: "grid", gap: 24, height: "fit-content" }}>
+          <div style={{ background: "#fff", padding: 24, borderRadius: 16, border: "1px solid #e8ecf3" }}>
+            <h3 style={{ margin: "0 0 20px", fontSize: 18, color: "#1f2a3d", fontWeight: 700 }}>Details</h3>
+            <div style={{ display: "grid", gap: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "#f8fafc", borderRadius: 12 }}>
+                <DollarSign size={20} color="#10b981" />
+                <div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>Entry Fee</p>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{place.entryFee ? `${place.entryFee.toLocaleString()} VND` : "Free Entrance"}</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "#f8fafc", borderRadius: 12 }}>
+                <Calendar size={20} color="#3b82f6" />
+                <div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>Created At</p>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>{formatDateValue(place.createdAt)}</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px", background: "#f8fafc", borderRadius: 12 }}>
+                <Info size={20} color="#f59e0b" />
+                <div>
+                  <p style={{ margin: 0, fontSize: 12, color: "#94a3b8" }}>Status</p>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: place.status === 'active' ? '#10b981' : '#ef4444' }}>
+                    {place.status?.toUpperCase() || "ACTIVE"}
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-          {place.website && (
-            <a
-              href={place.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: 12,
-                background: "#f9fafb",
-                borderRadius: 6,
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              <Globe size={16} color="#0369a1" />
-              <div>
-                <p style={{ margin: 0, fontSize: 12, color: "#647087" }}>Website</p>
-                <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, color: "#1f2a3d" }}>
-                  Visit Website →
-                </p>
+          </div>
+
+          <div style={{ background: "#fff", padding: 24, borderRadius: 16, border: "1px solid #e8ecf3" }}>
+            <h3 style={{ margin: "0 0 20px", fontSize: 18, color: "#1f2a3d", fontWeight: 700 }}>Location</h3>
+            {place.coordinates ? (
+              <div style={{ display: "grid", gap: 16 }}>
+                <iframe
+                  width="100%" height="200"
+                  style={{ borderRadius: 12, border: 0 }}
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${place.coordinates.lng - 0.01},${place.coordinates.lat - 0.01},${place.coordinates.lng + 0.01},${place.coordinates.lat + 0.01}&layer=mapnik&marker=${place.coordinates.lat},${place.coordinates.lng}`}
+                />
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={getDirections}
+                    disabled={loadingDirections}
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#1d4ed8", color: "#fff", border: "none", padding: "10px", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
+                  >
+                    <Navigation size={18} /> {loadingDirections ? "Loading..." : "Directions"}
+                  </button>
+                  <a
+                    href={`https://maps.google.com/?q=${place.coordinates.lat},${place.coordinates.lng}`}
+                    target="_blank" rel="noreferrer"
+                    style={{ background: "#f1f5f9", color: "#1f2a3d", padding: "10px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
+                  >
+                    <ExternalLink size={18} />
+                  </a>
+                </div>
+                {directions && (
+                  <div style={{ padding: "12px", background: "#ecfdf5", border: "1px solid #10b981", borderRadius: 10, color: "#065f46", fontSize: 13, fontWeight: 500 }}>
+                    Estimated {directions.distance} km away ({directions.duration} min drive)
+                  </div>
+                )}
               </div>
-            </a>
-          )}
-          {place.email && (
-            <a
-              href={`mailto:${place.email}`}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: 12,
-                background: "#f9fafb",
-                borderRadius: 6,
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              <Globe size={16} color="#0369a1" />
-              <div>
-                <p style={{ margin: 0, fontSize: 12, color: "#647087" }}>Email</p>
-                <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, color: "#1f2a3d" }}>
-                  {place.email}
-                </p>
+            ) : <p style={{ color: "#94a3b8", fontSize: 14 }}>No coordinates available.</p>}
+          </div>
+
+          {(place.phone || place.website) && (
+            <div style={{ background: "#fff", padding: 24, borderRadius: 16, border: "1px solid #e8ecf3" }}>
+              <h3 style={{ margin: "0 0 20px", fontSize: 18, color: "#1f2a3d", fontWeight: 700 }}>Contact Info</h3>
+              <div style={{ display: "grid", gap: 12 }}>
+                {place.phone && (
+                  <a href={`tel:${place.phone}`} style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#1f2a3d" }}>
+                    <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6" }}><Phone size={18} /></div>
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>{place.phone}</span>
+                  </a>
+                )}
+                {place.website && (
+                  <a href={place.website} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", color: "#1f2a3d" }}>
+                    <div style={{ background: "#eff6ff", padding: 8, borderRadius: 8, color: "#3b82f6" }}><Globe size={18} /></div>
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>Visit Official Website</span>
+                  </a>
+                )}
               </div>
-            </a>
+            </div>
           )}
         </div>
       </div>
     </div>
   );
 }
+

@@ -1,119 +1,164 @@
 import { useState } from "react";
-import { systemDefaults } from "../data/adminData";
+import { Globe, Mail, Bell, Shield, Moon, Save, RefreshCw } from "lucide-react";
 
 export default function Settings() {
-  const [platformName, setPlatformName] = useState(systemDefaults.platformName);
-  const [supportEmail, setSupportEmail] = useState(systemDefaults.supportEmail);
-  const [language, setLanguage] = useState(systemDefaults.defaultLanguage);
+  const [platformName, setPlatformName] = useState("TravelMate");
+  const [supportEmail, setSupportEmail] = useState("support@travelmate.com");
+  const [language, setLanguage] = useState("en");
   const [maintenance, setMaintenance] = useState(false);
+  const [notifications, setNotifications] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const saveSettings = () => {
     setSaved(true);
-    setTimeout(() => setSaved(false), 1600);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   return (
-    <div style={{ display: "grid", gap: 14, maxWidth: 760 }}>
+    <div style={{ display: "grid", gap: 24, maxWidth: 900 }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: 28, color: "#1f2a3d" }}>Settings</h1>
-        <p style={{ margin: "8px 0 0", color: "#647087" }}>
-          Keep only essential system settings for day to day operation.
+        <h1 style={{ margin: 0, fontSize: 32, color: "#1f2a3d", fontWeight: 700 }}>System Settings</h1>
+        <p style={{ margin: "8px 0 0", color: "#647087", fontSize: 16 }}>
+          Configure your platform preferences and global parameters.
         </p>
       </div>
 
-      <div
-        style={{
-          background: "#fff",
-          border: "1px solid #e8ecf3",
-          borderRadius: 12,
-          padding: 16,
-          display: "grid",
-          gap: 14,
-        }}
-      >
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 13, color: "#4d5a72", fontWeight: 600 }}>Platform Name</span>
-          <input
-            value={platformName}
-            onChange={(event) => setPlatformName(event.target.value)}
-            style={{ height: 40, border: "1px solid #d9e0ea", borderRadius: 8, padding: "0 12px", fontSize: 14, outline: "none" }}
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 13, color: "#4d5a72", fontWeight: 600 }}>Support Email</span>
-          <input
-            type="email"
-            value={supportEmail}
-            onChange={(event) => setSupportEmail(event.target.value)}
-            style={{ height: 40, border: "1px solid #d9e0ea", borderRadius: 8, padding: "0 12px", fontSize: 14, outline: "none" }}
-          />
-        </label>
-
-        <label style={{ display: "grid", gap: 6 }}>
-          <span style={{ fontSize: 13, color: "#4d5a72", fontWeight: 600 }}>Default Language</span>
-          <select
-            value={language}
-            onChange={(event) => setLanguage(event.target.value)}
-            style={{ height: 40, border: "1px solid #d9e0ea", borderRadius: 8, padding: "0 10px", fontSize: 14, outline: "none", background: "#fff" }}
-          >
-            <option value="en">English</option>
-            <option value="vi">Vietnamese</option>
-          </select>
-        </label>
-
-        <div
-          style={{
-            border: "1px solid #e8ecf3",
-            borderRadius: 10,
-            padding: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <p style={{ margin: 0, fontSize: 14, color: "#1f2a3d", fontWeight: 600 }}>Maintenance Mode</p>
-            <p style={{ margin: "4px 0 0", color: "#647087", fontSize: 13 }}>
-              Temporarily disable public traffic while keeping admin access.
-            </p>
-          </div>
-          <button
-            onClick={() => setMaintenance((prev) => !prev)}
-            style={{
-              border: "1px solid #d9e0ea",
-              background: maintenance ? "#1d4ed8" : "#fff",
-              color: maintenance ? "#fff" : "#344155",
-              padding: "8px 12px",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            {maintenance ? "Enabled" : "Disabled"}
-          </button>
+      <div style={{ display: "grid", gridTemplateColumns: "250px 1fr", gap: 32 }}>
+        {/* Navigation Sidebar */}
+        <div style={{ display: "grid", gap: 8, height: "fit-content" }}>
+          {[
+            { icon: Globe, label: "General", active: true },
+            { icon: Bell, label: "Notifications", active: false },
+            { icon: Shield, label: "Security", active: false },
+            { icon: Moon, label: "Appearance", active: false },
+          ].map(item => (
+            <button key={item.label} style={{
+              display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", border: "none",
+              background: item.active ? "#eff6ff" : "transparent",
+              color: item.active ? "#1d4ed8" : "#647087",
+              borderRadius: 10, cursor: "pointer", fontSize: 14, fontWeight: 600, textAlign: "left"
+            }}>
+              <item.icon size={18} />
+              {item.label}
+            </button>
+          ))}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button
-            onClick={saveSettings}
-            style={{
-              border: "none",
-              background: saved ? "#15803d" : "#1d4ed8",
-              color: "#fff",
-              padding: "10px 16px",
-              borderRadius: 8,
-              cursor: "pointer",
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
-            {saved ? "Saved" : "Save Settings"}
-          </button>
+        {/* Content Area */}
+        <div style={{ display: "grid", gap: 24 }}>
+          {/* General Section */}
+          <section style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 16, padding: 24 }}>
+            <h3 style={{ margin: "0 0 20px", fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>General Information</h3>
+            <div style={{ display: "grid", gap: 20 }}>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Platform Name</label>
+                <input
+                  value={platformName}
+                  onChange={(e) => setPlatformName(e.target.value)}
+                  style={{ padding: "12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none", fontSize: 14 }}
+                />
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Admin Support Email</label>
+                <div style={{ position: "relative" }}>
+                  <Mail size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
+                  <input
+                    type="email"
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    style={{ width: "100%", padding: "12px 12px 12px 40px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none", fontSize: 14 }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>System Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  style={{ padding: "12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none", fontSize: 14, background: "#fff" }}
+                >
+                  <option value="en">English (US)</option>
+                  <option value="vi">Tiếng Việt</option>
+                  <option value="fr">Français</option>
+                </select>
+              </div>
+            </div>
+          </section>
+
+          {/* System Control Section */}
+          <section style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 16, padding: 24 }}>
+            <h3 style={{ margin: "0 0 20px", fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>System Control</h3>
+            <div style={{ display: "grid", gap: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", borderRadius: 10, background: "#f8fafc" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1f2a3d" }}>Maintenance Mode</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "#647087" }}>Offline for public users</p>
+                </div>
+                <button
+                  onClick={() => setMaintenance(!maintenance)}
+                  style={{
+                    width: 48, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+                    background: maintenance ? "#1d4ed8" : "#cbd5e1", position: "relative", transition: "background 0.2s"
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                    position: "absolute", top: 3, left: maintenance ? 27 : 3, transition: "left 0.2s"
+                  }}></div>
+                </button>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", borderRadius: 10, background: "#f8fafc" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1f2a3d" }}>Push Notifications</p>
+                  <p style={{ margin: "2px 0 0", fontSize: 12, color: "#647087" }}>Enable system alerts</p>
+                </div>
+                <button
+                  onClick={() => setNotifications(!notifications)}
+                  style={{
+                    width: 48, height: 24, borderRadius: 12, border: "none", cursor: "pointer",
+                    background: notifications ? "#10b981" : "#cbd5e1", position: "relative", transition: "background 0.2s"
+                  }}
+                >
+                  <div style={{
+                    width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                    position: "absolute", top: 3, left: notifications ? 27 : 3, transition: "left 0.2s"
+                  }}></div>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 12 }}>
+            <button style={{ padding: "12px 24px", borderRadius: 10, border: "1px solid #d9e0ea", background: "#fff", cursor: "pointer", fontWeight: 600, color: "#647087" }}>
+              Reset Defaults
+            </button>
+            <button
+              onClick={saveSettings}
+              disabled={saved}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "12px 28px", borderRadius: 10, border: "none",
+                background: saved ? "#10b981" : "#1d4ed8", color: "#fff", cursor: saved ? "default" : "pointer", fontWeight: 600,
+                boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)"
+              }}
+            >
+              {saved ? <CheckCircle size={18} /> : <Save size={18} />}
+              {saved ? "Changes Saved" : "Save Settings"}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+function CheckCircle({ size }: { size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+  );
+}
+

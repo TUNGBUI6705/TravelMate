@@ -1,6 +1,7 @@
 import {
   equalTo,
   get,
+  onValue,
   orderByChild,
   push,
   query,
@@ -8,8 +9,11 @@ import {
   remove,
   update,
   set,
+  off,
 } from "firebase/database";
 import { db } from "../../config/firebase.js";
+import { tripService } from "./tripService.js";
+import { reviewService } from "./reviewService.js";
 
 const COLLECTION_NAME = "destinations";
 const placesRef = () => ref(db, COLLECTION_NAME);
@@ -107,14 +111,72 @@ export const placeService = {
   },
 
   async update(id, data) {
-    await update(placeRef(id), {
+    const updateData = {
       ...data,
       updatedAt: Date.now(),
-    });
+    };
+    // Đảm bảo không update trường id vào data payload của Firebase
+    if (updateData.id) delete updateData.id;
+
+    await update(placeRef(id), updateData);
     return placeService.getById(id);
   },
 
+  /**
+   * Lắng nghe thay đổi thời gian thực từ Firebase
+   * @param {Function} callback - Hàm được gọi khi dữ liệu thay đổi
+   * @returns {Function} - Hàm để hủy lắng nghe (unsubscribe)
+   */
+  subscribe(callback) {
+    const r = placesRef();
+    const listener = onValue(r, (snapshot) => {
+      const places = normalizeSnapshotValue(snapshot.val());
+      callback(places);
+    }, (error) => {
+      console.error("Firebase subscription error:", error);
+    });
+
+    return () => off(r, "value", listener);
+  },
+
+  /**
+   * Kiểm tra xem địa điểm có đang được sử dụng trong Trip hoặc Review nào không
+   * @param {string} placeId
+   */
+  async checkDependencies(placeId) {
+    const [allTrips, allReviews] = await Promise.all([
+      tripService.getAll(),
+      reviewService.getAll()
+    ]);
+
+    const linkedTrips = allTrips.filter(t => t.destinationId === placeId || t.destination === placeId);
+    const linkedReviews = allReviews.filter(r => r.placeId === placeId);
+
+    return {
+      trips: linkedTrips,
+      reviews: linkedReviews,
+      hasDependencies: linkedTrips.length > 0 || linkedReviews.length > 0
+    };
+  },
+
   async delete(id) {
+    // 1. Kiểm tra và xóa các review liên quan
+    const allReviews = await reviewService.getAll();
+    const linkedReviews = allReviews.filter(r => r.placeId === id);
+    if (linkedReviews.length > 0) {
+      console.log(`Deleting ${linkedReviews.length} linked reviews for place ${id}`);
+      await Promise.all(linkedReviews.map(r => reviewService.delete(r.id)));
+    }
+
+    // 2. Kiểm tra và xóa các trip liên quan (nếu có logic destinationId)
+    const allTrips = await tripService.getAll();
+    const linkedTrips = allTrips.filter(t => t.destinationId === id);
+    if (linkedTrips.length > 0) {
+      console.log(`Deleting ${linkedTrips.length} linked trips for place ${id}`);
+      await Promise.all(linkedTrips.map(t => tripService.delete(t.id)));
+    }
+
+    // 3. Xóa chính địa điểm đó
     await remove(placeRef(id));
   },
 
