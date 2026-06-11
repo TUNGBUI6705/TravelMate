@@ -3,12 +3,14 @@ import { placeService } from "../../data/services/placeService.js";
 import { reviewService } from "../../data/services/reviewService.js";
 import { MapPin, Plus, Edit, Trash2, Image as ImageIcon, ChevronDown, ChevronUp, Star, MessageSquare } from "lucide-react";
 import PlaceFormModal from "../components/PlaceFormModal.js";
+import { useTheme } from "../utils/ThemeContext";
 
 export default function PlaceList() {
+  const { theme } = useTheme();
   const [places, setPlaces] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("all");
+  const [interestFilter, setInterestFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -41,9 +43,12 @@ export default function PlaceList() {
     };
   }, []);
 
-  const categories = useMemo(() => {
-    const set = new Set(places.map((place) => place.category || place.type));
-    return ["all", ...Array.from(set).filter(Boolean)];
+  const allInterests = useMemo(() => {
+    const set = new Set();
+    places.forEach(p => {
+      if (p.categoryTags) p.categoryTags.forEach(tag => set.add(tag));
+    });
+    return ["all", ...Array.from(set)];
   }, [places]);
 
   const filteredPlaces = useMemo(() => {
@@ -55,19 +60,15 @@ export default function PlaceList() {
         name.toLowerCase().includes(query.toLowerCase()) ||
         location.toLowerCase().includes(query.toLowerCase());
 
-      const placeCat = place.category || place.type || "uncategorized";
-      const matchCategory = category === "all" || placeCat === category;
-      return matchQuery && matchCategory;
+      const matchInterest = interestFilter === "all" || (place.categoryTags && place.categoryTags.includes(interestFilter));
+
+      return matchQuery && matchInterest;
     });
-  }, [places, query, category]);
+  }, [places, query, interestFilter]);
 
   const handleOpenMap = (place) => {
-    if (place.coordinates && place.coordinates.lat && place.coordinates.lng) {
-      window.open(`https://www.google.com/maps/?q=${place.coordinates.lat},${place.coordinates.lng}`, "_blank");
-    } else {
-      const searchQuery = encodeURIComponent(`${place.name} ${place.location || ""}`);
-      window.open(`https://www.google.com/maps/search/?api=1&query=${searchQuery}`, "_blank");
-    }
+    const searchQuery = encodeURIComponent(`${place.name} ${place.location || ""}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${searchQuery}`, "_blank");
   };
 
   const handleEdit = (place) => {
@@ -117,12 +118,14 @@ export default function PlaceList() {
     }
   };
 
+  const isDark = theme === 'dark';
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28, color: "#1f2a3d" }}>Destination Management</h1>
-          <p style={{ margin: "8px 0 0", color: "#647087" }}>
+          <h1 style={{ margin: 0, fontSize: 28, color: isDark ? "#f8fafc" : "#1f2a3d" }}>Destination Management</h1>
+          <p style={{ margin: "8px 0 0", color: "#94a3b8" }}>
             Manage your travel locations and their details.
           </p>
         </div>
@@ -141,8 +144,8 @@ export default function PlaceList() {
           display: "grid",
           gridTemplateColumns: "1fr 200px",
           gap: 10,
-          background: "#ffffff",
-          border: "1px solid #e8ecf3",
+          background: isDark ? "#1e293b" : "#ffffff",
+          border: isDark ? "1px solid #334155" : "1px solid #e8ecf3",
           borderRadius: 12,
           padding: 12,
         }}
@@ -153,35 +156,38 @@ export default function PlaceList() {
           placeholder="Search by place name or location..."
           style={{
             height: 40,
-            border: "1px solid #d9e0ea",
+            border: isDark ? "1px solid #334155" : "1px solid #d9e0ea",
             borderRadius: 8,
             padding: "0 12px",
             fontSize: 14,
             outline: "none",
+            background: isDark ? "#0f172a" : "#fff",
+            color: isDark ? "#f8fafc" : "#1f2a3d"
           }}
         />
         <select
-          value={category}
-          onChange={(event) => setCategory(event.target.value)}
+          value={interestFilter}
+          onChange={(event) => setInterestFilter(event.target.value)}
           style={{
             height: 40,
-            border: "1px solid #d9e0ea",
+            border: isDark ? "1px solid #334155" : "1px solid #d9e0ea",
             borderRadius: 8,
             padding: "0 10px",
             fontSize: 14,
             outline: "none",
-            background: "#fff",
+            background: isDark ? "#0f172a" : "#fff",
+            color: isDark ? "#f8fafc" : "#1f2a3d"
           }}
         >
-          {categories.map((item) => (
+          {allInterests.map((item: any) => (
             <option key={item} value={item}>
-              {item === "all" ? "All categories" : item}
+              {item === "all" ? "Tất cả sở thích" : item}
             </option>
           ))}
         </select>
       </div>
 
-      <div style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ background: isDark ? "#1e293b" : "#fff", border: isDark ? "1px solid #334155" : "1px solid #e8ecf3", borderRadius: 12, overflow: "hidden" }}>
         {loading && places.length === 0 && (
           <div style={{ padding: 28, textAlign: "center", color: "#647087" }}>
             Loading places from backend...
@@ -195,16 +201,16 @@ export default function PlaceList() {
         {!error && (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ background: "#f7f9fc" }}>
-              {["Name", "Location", "Category", "Status", "Actions"].map((col) => (
+            <tr style={{ background: isDark ? "#334155" : "#f7f9fc" }}>
+              {["Name", "Location", "Status", "Actions"].map((col) => (
                 <th
                   key={col}
                   style={{
                     textAlign: "left",
                     padding: "12px 14px",
                     fontSize: 12,
-                    color: "#5e6b81",
-                    borderBottom: "1px solid #e8ecf3",
+                    color: isDark ? "#94a3b8" : "#5e6b81",
+                    borderBottom: isDark ? "1px solid #1e293b" : "1px solid #e8ecf3",
                   }}
                 >
                   {col}
@@ -218,12 +224,12 @@ export default function PlaceList() {
                 <tr
                   className="table-row"
                   onClick={() => setExpandedRowId(expandedRowId === place.id ? null : place.id)}
-                  style={{ cursor: "pointer", transition: "background 0.2s" }}
+                  style={{ cursor: "pointer", transition: "background 0.2s", borderBottom: isDark ? "1px solid #334155" : "1px solid #eef2f8" }}
                 >
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#1f2a3d", fontWeight: 600 }}>
+                  <td style={{ padding: "12px 14px", color: isDark ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       {expandedRowId === place.id ? <ChevronUp size={16} color="#647087" /> : <ChevronDown size={16} color="#647087" />}
-                      <div style={{ width: 40, height: 40, borderRadius: 8, background: "#f1f5f9", overflow: "hidden", flexShrink: 0 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 8, background: isDark ? "#0f172a" : "#f1f5f9", overflow: "hidden", flexShrink: 0 }}>
                         {place.coverImage ? (
                           <img src={place.coverImage} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         ) : (
@@ -233,7 +239,7 @@ export default function PlaceList() {
                         )}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: 15, color: "#1f2a3d", fontWeight: 600 }}>{place.name || place.title}</span>
+                        <span style={{ fontSize: 15, color: isDark ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>{place.name || place.title}</span>
                         <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
                           {/* Tính toán Rating từ Reviews table */}
                           {(() => {
@@ -249,7 +255,7 @@ export default function PlaceList() {
                                 <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                                   <div style={{ display: "flex", alignItems: "center" }}>
                                     <Star size={12} fill="#f59e0b" color="#f59e0b" />
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: "#1f2a3d", marginLeft: 4 }}>{avgRating}</span>
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: isDark ? "#f8fafc" : "#1f2a3d", marginLeft: 4 }}>{avgRating}</span>
                                   </div>
                                   <span style={{ fontSize: 12, color: "#94a3b8" }}>•</span>
                                   <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#647087" }}>
@@ -265,46 +271,41 @@ export default function PlaceList() {
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72" }}>
+                  <td style={{ padding: "12px 14px", color: isDark ? "#cbd5e1" : "#4d5a72" }}>
                     {place.location || place.address || place.city}
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72" }}>
-                    <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 12, fontSize: 11 }}>
-                      {place.category || place.type}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8" }}>
+                  <td style={{ padding: "12px 14px" }}>
                     <span style={{
                       padding: "3px 10px",
                       borderRadius: 20,
                       fontSize: 12,
                       fontWeight: 600,
-                      background: place.status === 'active' ? '#dcfce7' : '#fee2e2',
-                      color: place.status === 'active' ? '#15803d' : '#991b1b'
+                      background: place.status === 'active' ? (isDark ? "rgba(16,185,129,0.1)" : '#dcfce7') : (isDark ? "rgba(239,68,68,0.1)" : '#fee2e2'),
+                      color: place.status === 'active' ? '#10b981' : '#ef4444'
                     }}>
                       {place.status}
                     </span>
                   </td>
-                  <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8" }}>
+                  <td style={{ padding: "12px 14px" }}>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
                         title="View on Google Maps"
                         onClick={(e) => { e.stopPropagation(); handleOpenMap(place); }}
-                        style={{ border: "none", background: "#f0fdf4", color: "#15803d", padding: 8, borderRadius: 6, cursor: "pointer" }}
+                        style={{ border: "none", background: isDark ? "#064e3b" : "#f0fdf4", color: "#10b981", padding: 8, borderRadius: 6, cursor: "pointer" }}
                       >
                         <MapPin size={16} />
                       </button>
                       <button
                         title="Edit"
                         onClick={(e) => { e.stopPropagation(); handleEdit(place); }}
-                        style={{ border: "none", background: "#eff6ff", color: "#1d4ed8", padding: 8, borderRadius: 6, cursor: "pointer" }}
+                        style={{ border: "none", background: isDark ? "#1e3a8a" : "#eff6ff", color: "#3b82f6", padding: 8, borderRadius: 6, cursor: "pointer" }}
                       >
                         <Edit size={16} />
                       </button>
                       <button
                         title="Delete"
                         onClick={(e) => handleDelete(e, place.id)}
-                        style={{ border: "none", background: "#fef2f2", color: "#b91c1c", padding: 8, borderRadius: 6, cursor: "pointer" }}
+                        style={{ border: "none", background: isDark ? "#7f1d1d" : "#fef2f2", color: "#ef4444", padding: 8, borderRadius: 6, cursor: "pointer" }}
                       >
                         <Trash2 size={16} />
                       </button>
@@ -314,23 +315,23 @@ export default function PlaceList() {
 
                 {expandedRowId === place.id && (
                   <tr>
-                    <td colSpan={5} style={{ padding: "0 14px 20px", borderBottom: "1px solid #eef2f8", background: "#fcfdfe" }}>
-                      <div style={{ padding: 20, background: "#fff", border: "1px solid #e8ecf3", borderRadius: 12, marginTop: -8, display: "grid", gap: 20 }}>
+                    <td colSpan={5} style={{ padding: "0 14px 20px", borderBottom: isDark ? "1px solid #334155" : "1px solid #eef2f8", background: isDark ? "#0f172a" : "#fcfdfe" }}>
+                      <div style={{ padding: 20, background: isDark ? "#1e293b" : "#fff", border: isDark ? "1px solid #334155" : "1px solid #e8ecf3", borderRadius: 12, marginTop: -8, display: "grid", gap: 20 }}>
 
                         {/* Tags Section */}
                         {place.categoryTags && place.categoryTags.length > 0 && (
                           <div>
-                             <h4 style={{ margin: "0 0 12px", fontSize: 14, color: "#647087", fontWeight: 600 }}>Sở thích & Phân loại</h4>
+                             <h4 style={{ margin: "0 0 12px", fontSize: 14, color: isDark ? "#94a3b8" : "#647087", fontWeight: 600 }}>Sở thích & Phân loại</h4>
                              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                                {place.categoryTags.map((tag: string) => (
                                  <span key={tag} style={{
-                                   background: "#eff6ff",
-                                   color: "#1d4ed8",
+                                   background: isDark ? "#1e3a8a" : "#eff6ff",
+                                   color: isDark ? "#3b82f6" : "#1d4ed8",
                                    padding: "4px 12px",
                                    borderRadius: 100,
                                    fontSize: 12,
                                    fontWeight: 600,
-                                   border: "1px solid #dbeafe"
+                                   border: isDark ? "1px solid #1e40af" : "1px solid #dbeafe"
                                  }}>
                                    #{tag}
                                  </span>
@@ -341,7 +342,7 @@ export default function PlaceList() {
 
                         <div>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                             <h4 style={{ margin: 0, fontSize: 15, color: "#1f2a3d", display: "flex", alignItems: "center", gap: 8 }}>
+                             <h4 style={{ margin: 0, fontSize: 15, color: isDark ? "#f8fafc" : "#1f2a3d", display: "flex", alignItems: "center", gap: 8 }}>
                                <MessageSquare size={18} color="#3b82f6" />
                                Cộng đồng đánh giá ({reviews.filter(r => r.placeId === place.id).length})
                              </h4>
@@ -356,16 +357,16 @@ export default function PlaceList() {
                         {reviews.filter(r => r.placeId === place.id).length > 0 ? (
                           <div style={{ display: "grid", gap: 12 }}>
                             {reviews.filter(r => r.placeId === place.id).slice(0, 3).map((rev) => (
-                              <div key={rev.id} style={{ padding: "12px 16px", borderRadius: 10, background: "#f8fafc", border: "1px solid #f1f5f9" }}>
+                              <div key={rev.id} style={{ padding: "12px 16px", borderRadius: 10, background: isDark ? "#0f172a" : "#f8fafc", border: isDark ? "1px solid #334155" : "1px solid #f1f5f9" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                                  <span style={{ fontWeight: 600, fontSize: 14, color: "#334155" }}>{rev.reviewerName || "Người dùng"}</span>
+                                  <span style={{ fontWeight: 600, fontSize: 14, color: isDark ? "#f8fafc" : "#334155" }}>{rev.reviewerName || "Người dùng"}</span>
                                   <div style={{ display: "flex", gap: 2 }}>
                                     {[...Array(5)].map((_, i) => (
                                       <Star key={i} size={12} fill={i < (rev.rating || 0) ? "#f59e0b" : "none"} color={i < (rev.rating || 0) ? "#f59e0b" : "#d1d5db"} />
                                     ))}
                                   </div>
                                 </div>
-                                <p style={{ margin: 0, fontSize: 13, color: "#647087", lineHeight: 1.5 }}>{rev.comment}</p>
+                                <p style={{ margin: 0, fontSize: 13, color: isDark ? "#cbd5e1" : "#647087", lineHeight: 1.5 }}>{rev.comment}</p>
                               </div>
                             ))}
                             {reviews.filter(r => r.placeId === place.id).length > 3 && (
@@ -406,5 +407,3 @@ export default function PlaceList() {
     </div>
   );
 }
-
-

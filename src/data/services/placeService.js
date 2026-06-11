@@ -51,7 +51,6 @@ const normalizePlaceRecord = (record, id) => {
     id,
     name: record.name || record.title || "Untitled place",
     location: record.location || record.address || "Unknown location",
-    category: record.category || record.type || "uncategorized",
     status: record.status || "draft",
     createdAt: formatTimestamp(record.createdAt),
     updatedAt: formatTimestamp(record.updatedAt),

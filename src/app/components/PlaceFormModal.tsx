@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Save, MapPin, Check } from "lucide-react";
 import ImageUpload from "./ImageUpload";
+import { useTheme } from "../utils/ThemeContext";
 
 interface PlaceFormModalProps {
   isOpen: boolean;
@@ -27,10 +28,9 @@ export default function PlaceFormModal({ isOpen, onClose, onSave, initialData }:
   const [formData, setFormData] = useState({
     name: "",
     location: "",
-    category: "",
     description: "",
     coverImage: "",
-    coordinates: { lat: 0, lng: 0 },
+    imageUrls: [] as string[],
     status: "active",
     categoryTags: [] as string[],
   });
@@ -41,17 +41,16 @@ export default function PlaceFormModal({ isOpen, onClose, onSave, initialData }:
       setFormData({
         ...formData,
         ...initialData,
-        coordinates: initialData.coordinates || { lat: 0, lng: 0 },
+        imageUrls: initialData.imageUrls || (initialData.coverImage ? [initialData.coverImage] : []),
         categoryTags: initialData.categoryTags || []
       });
     } else {
       setFormData({
         name: "",
         location: "",
-        category: "",
         description: "",
         coverImage: "",
-        coordinates: { lat: 0, lng: 0 },
+        imageUrls: [],
         status: "active",
         categoryTags: [],
       });
@@ -88,18 +87,7 @@ export default function PlaceFormModal({ isOpen, onClose, onSave, initialData }:
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
-      setFormData((prev: any) => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: parseFloat(value) || value
-        }
-      }));
-    } else {
-      setFormData((prev) => ({ ...prev, [name]: value }));
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -155,30 +143,18 @@ export default function PlaceFormModal({ isOpen, onClose, onSave, initialData }:
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Trạng thái</label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none", background: "#fff" }}
-              >
-                <option value="active">Hoạt động</option>
-                <option value="draft">Bản nháp</option>
-                <option value="hidden">Ẩn</option>
-              </select>
-            </div>
-            <div style={{ display: "grid", gap: 8 }}>
-              <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Phân loại chính</label>
-              <input
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                placeholder="VD: Thiên nhiên, Biển"
-                style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none" }}
-              />
-            </div>
+          <div style={{ display: "grid", gap: 8 }}>
+            <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Trạng thái</label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none", background: "#fff" }}
+            >
+              <option value="active">Hoạt động</option>
+              <option value="draft">Bản nháp</option>
+              <option value="hidden">Ẩn</option>
+            </select>
           </div>
 
           <div style={{ display: "grid", gap: 12 }}>
@@ -231,35 +207,41 @@ export default function PlaceFormModal({ isOpen, onClose, onSave, initialData }:
           </div>
 
           {/* Supabase Image Upload Section */}
-          <ImageUpload
-            label="Ảnh bìa địa điểm"
-            currentImageUrl={formData.coverImage}
-            folder="destinations"
-            onUploadSuccess={(url) => setFormData(prev => ({ ...prev, coverImage: url }))}
-            onDeleteSuccess={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
-          />
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <div style={{ display: "grid", gap: 8 }}>
-              <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Vĩ độ (Lat)</label>
-              <input
-                type="number"
-                step="any"
-                name="coordinates.lat"
-                value={formData.coordinates.lat}
-                onChange={handleChange}
-                style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none" }}
-              />
-            </div>
-            <div style={{ display: "grid", gap: 8 }}>
-              <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Kinh độ (Lng)</label>
-              <input
-                type="number"
-                step="any"
-                name="coordinates.lng"
-                value={formData.coordinates.lng}
-                onChange={handleChange}
-                style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none" }}
+          <div style={{ display: "grid", gap: 12 }}>
+            <label style={{ fontSize: 14, fontWeight: 600, color: "#344155" }}>Hình ảnh địa điểm (Nhiều ảnh)</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(120px, 1fr))", gap: 12 }}>
+              {formData.imageUrls.map((url, index) => (
+                <div key={index} style={{ position: "relative", aspectRatio: "1/1", borderRadius: 8, overflow: "hidden", border: formData.coverImage === url ? "3px solid #3b82f6" : "1px solid #e2e8f0" }}>
+                  <img src={url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, imageUrls: prev.imageUrls.filter((_, i) => i !== index), coverImage: prev.coverImage === url ? '' : prev.coverImage }))}
+                    style={{ position: "absolute", top: 4, right: 4, background: "rgba(255,255,255,0.8)", border: "none", borderRadius: "50%", padding: 4, cursor: "pointer", color: "#ef4444" }}
+                  >
+                    <X size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, coverImage: url }))}
+                    style={{
+                      position: "absolute", bottom: 4, left: 4, right: 4,
+                      background: formData.coverImage === url ? "#3b82f6" : "rgba(0,0,0,0.5)",
+                      color: "#fff", border: "none", borderRadius: 4, fontSize: 10, padding: "2px 0", cursor: "pointer"
+                    }}
+                  >
+                    {formData.coverImage === url ? "Ảnh bìa" : "Làm ảnh bìa"}
+                  </button>
+                </div>
+              ))}
+              <ImageUpload
+                label=""
+                aspectRatio="1/1"
+                folder="destinations"
+                onUploadSuccess={(url) => setFormData(prev => ({
+                  ...prev,
+                  imageUrls: [...prev.imageUrls, url],
+                  coverImage: prev.coverImage || url
+                }))}
               />
             </div>
           </div>

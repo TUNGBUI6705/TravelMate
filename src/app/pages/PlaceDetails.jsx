@@ -11,8 +11,6 @@ export default function PlaceDetails() {
   const [place, setPlace] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [directions, setDirections] = useState(null);
-  const [loadingDirections, setLoadingDirections] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
 
   useEffect(() => {
@@ -32,36 +30,12 @@ export default function PlaceDetails() {
     };
     loadPlace();
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (p) => isMounted && setUserLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-        () => console.log("Location denied")
-      );
-    }
     return () => { isMounted = false; };
   }, [placeId]);
 
-  const getDirections = async () => {
-    if (!place?.coordinates || !userLocation) return;
-    try {
-      setLoadingDirections(true);
-      const data = await openRouteService.getDirections(
-        userLocation.lat, userLocation.lng,
-        place.coordinates.lat, place.coordinates.lng, 'driving-car'
-      );
-      if (data?.routes?.[0]) {
-        const route = data.routes[0];
-        setDirections({
-          distance: (route.summary.distance / 1000).toFixed(1),
-          duration: Math.round(route.summary.duration / 60)
-        });
-      }
-    } catch (err) {
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${userLocation.lat},${userLocation.lng}&destination=${place.coordinates.lat},${place.coordinates.lng}`;
-      window.open(url, "_blank");
-    } finally {
-      setLoadingDirections(false);
-    }
+  const getDirections = () => {
+    const searchQuery = encodeURIComponent(`${place.name} ${place.location || ""}`);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${searchQuery}`, "_blank");
   };
 
   if (isLoading) return <div style={{ padding: 60, textAlign: "center", color: "#647087" }}>Loading details...</div>;
@@ -89,8 +63,7 @@ export default function PlaceDetails() {
               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 32, background: "linear-gradient(transparent, rgba(0,0,0,0.8))", color: "#fff" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end" }}>
                   <div>
-                    <span style={{ background: "#3b82f6", padding: "4px 12px", borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>{place.type || place.category}</span>
-                    <h1 style={{ margin: "12px 0 8px", fontSize: 40, fontWeight: 700 }}>{place.name}</h1>
+                    <h1 style={{ margin: "0 0 8px", fontSize: 40, fontWeight: 700 }}>{place.name}</h1>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, opacity: 0.9 }}>
                       <MapPin size={18} />
                       {place.location || `${place.city}, ${place.province}`}
@@ -149,36 +122,14 @@ export default function PlaceDetails() {
 
           <div style={{ background: "#fff", padding: 24, borderRadius: 16, border: "1px solid #e8ecf3" }}>
             <h3 style={{ margin: "0 0 20px", fontSize: 18, color: "#1f2a3d", fontWeight: 700 }}>Location</h3>
-            {place.coordinates ? (
-              <div style={{ display: "grid", gap: 16 }}>
-                <iframe
-                  width="100%" height="200"
-                  style={{ borderRadius: 12, border: 0 }}
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${place.coordinates.lng - 0.01},${place.coordinates.lat - 0.01},${place.coordinates.lng + 0.01},${place.coordinates.lat + 0.01}&layer=mapnik&marker=${place.coordinates.lat},${place.coordinates.lng}`}
-                />
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    onClick={getDirections}
-                    disabled={loadingDirections}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#1d4ed8", color: "#fff", border: "none", padding: "10px", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
-                  >
-                    <Navigation size={18} /> {loadingDirections ? "Loading..." : "Directions"}
-                  </button>
-                  <a
-                    href={`https://maps.google.com/?q=${place.coordinates.lat},${place.coordinates.lng}`}
-                    target="_blank" rel="noreferrer"
-                    style={{ background: "#f1f5f9", color: "#1f2a3d", padding: "10px", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}
-                  >
-                    <ExternalLink size={18} />
-                  </a>
-                </div>
-                {directions && (
-                  <div style={{ padding: "12px", background: "#ecfdf5", border: "1px solid #10b981", borderRadius: 10, color: "#065f46", fontSize: 13, fontWeight: 500 }}>
-                    Estimated {directions.distance} km away ({directions.duration} min drive)
-                  </div>
-                )}
-              </div>
-            ) : <p style={{ color: "#94a3b8", fontSize: 14 }}>No coordinates available.</p>}
+            <div style={{ display: "grid", gap: 16 }}>
+              <button
+                onClick={getDirections}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "#1d4ed8", color: "#fff", border: "none", padding: "10px", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
+              >
+                <Navigation size={18} /> View on Google Maps
+              </button>
+            </div>
           </div>
 
           {(place.phone || place.website) && (

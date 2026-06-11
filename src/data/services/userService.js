@@ -55,20 +55,22 @@ export const userService = {
     return userService.getById(uid);
   },
 
-  async ban(uid, reason) {
+  async block(uid, reason) {
     await update(userRef(uid), {
-      status: "banned",
-      bannedReason: reason,
-      bannedAt: Date.now(),
+      status: "blocked",
+      isBlocked: true,
+      blockedReason: reason,
+      blockedAt: Date.now(),
     });
     return userService.getById(uid);
   },
 
-  async unban(uid) {
+  async unblock(uid) {
     await update(userRef(uid), {
       status: "active",
-      bannedReason: null,
-      bannedAt: null,
+      isBlocked: false,
+      blockedReason: null,
+      blockedAt: null,
     });
     return userService.getById(uid);
   },

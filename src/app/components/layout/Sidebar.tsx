@@ -1,5 +1,6 @@
 import { Briefcase, CreditCard, Home, MapPin, MessageSquare, Settings, Users } from "lucide-react";
 import { NavLink, useNavigate } from "react-router";
+import { useTheme } from "../../utils/ThemeContext";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,22 +18,26 @@ const navItems = [
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+
+  const isDark = theme === 'dark';
 
   return (
     <aside
       style={{
         width: collapsed ? 76 : 240,
         transition: "width 200ms ease",
-        background: "linear-gradient(180deg, #111827, #0f172a)",
+        background: isDark ? "#1e293b" : "linear-gradient(180deg, #111827, #0f172a)",
         color: "#fff",
-        borderRight: "1px solid rgba(255,255,255,0.08)",
+        borderRight: isDark ? "1px solid #334155" : "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         flexDirection: "column",
         position: "fixed",
         inset: "0 auto 0 0",
+        zIndex: 100
       }}
     >
-      <div style={{ padding: collapsed ? "18px 10px" : "18px 16px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ padding: collapsed ? "18px 10px" : "18px 16px", borderBottom: isDark ? "1px solid #334155" : "1px solid rgba(255,255,255,0.08)" }}>
         <p style={{ margin: 0, fontSize: 18, fontWeight: 700, textAlign: collapsed ? "center" : "left" }}>
           {collapsed ? "TM" : "TravelMate"}
         </p>
@@ -54,7 +59,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               padding: collapsed ? "10px 8px" : "10px 12px",
               textDecoration: "none",
               color: isActive ? "#ffffff" : "rgba(255,255,255,0.7)",
-              background: isActive ? "rgba(59,130,246,0.25)" : "transparent",
+              background: isActive ? (isDark ? "#3b82f6" : "rgba(59,130,246,0.25)") : "transparent",
             })}
           >
             <item.icon size={18} />

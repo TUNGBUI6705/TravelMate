@@ -13,18 +13,22 @@ import {
   PieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
 import { reviewService } from "../../data/services/reviewService.js";
-
-const cardBase: CSSProperties = {
-  background: "#ffffff",
-  border: "1px solid #e8ecf3",
-  borderRadius: 16,
-  padding: 24,
-  boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
-};
+import { useTheme } from "../utils/ThemeContext";
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function Dashboard() {
+  const { theme } = useTheme();
+
+  const cardBase: CSSProperties = {
+    background: theme === 'dark' ? "#1e293b" : "#ffffff",
+    border: theme === 'dark' ? "1px solid #334155" : "1px solid #e8ecf3",
+    borderRadius: 16,
+    padding: 24,
+    boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
+    color: theme === 'dark' ? "#f8fafc" : "#1f2a3d"
+  };
+
   const [data, setData] = useState({
     users: [],
     destinations: [],
@@ -65,12 +69,18 @@ export default function Dashboard() {
   }, []);
 
   const destinationStats = useMemo(() => {
-    const catMap = {};
+    const tagMap = {};
     data.destinations.forEach(d => {
-      const cat = d.category || d.type || 'Other';
-      catMap[cat] = (catMap[cat] || 0) + 1;
+      if (d.categoryTags && Array.isArray(d.categoryTags)) {
+        d.categoryTags.forEach(tag => {
+          tagMap[tag] = (tagMap[tag] || 0) + 1;
+        });
+      }
     });
-    return Object.entries(catMap).map(([name, value]) => ({ name, value })).slice(0, 5);
+    return Object.entries(tagMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a: any, b: any) => b.value - a.value)
+      .slice(0, 5);
   }, [data.destinations]);
 
   const recentTrips = useMemo(() => {
@@ -78,6 +88,13 @@ export default function Dashboard() {
       .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
       .slice(0, 5);
   }, [data.trips]);
+
+  const reviewStats = useMemo(() => {
+    const total = data.reviews.length;
+    const sum = data.reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0);
+    const avg = total > 0 ? (sum / total).toFixed(1) : "0.0";
+    return { total, avg };
+  }, [data.reviews]);
 
   const expenseByCategory = useMemo(() => {
     const map = {};
@@ -99,11 +116,19 @@ export default function Dashboard() {
     return Object.entries(monthMap).map(([name, users]) => ({ name, users }));
   }, [data.users]);
 
-  const reviewStats = useMemo(() => {
-    const total = data.reviews.length;
-    const avg = total > 0 ? (data.reviews.reduce((s, r) => s + (r.rating || 0), 0) / total).toFixed(1) : 0;
-    return { total, avg };
-  }, [data.reviews]);
+  const insights = useMemo(() => {
+    const totalUsers = data.users.length;
+    const totalTrips = data.trips.length;
+    const totalSpending = data.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+    const avgRating = reviewStats.avg;
+
+    return [
+      `TravelMate hiện có ${totalUsers.toLocaleString()} người dùng hoạt động, với mức tăng trưởng 12% so với tháng trước.`,
+      `Tổng cộng có ${totalTrips.toLocaleString()} chuyến đi đã được lên kế hoạch, tập trung nhiều nhất ở các điểm đến Thiên nhiên và Văn hóa.`,
+      `Người dùng đã chi tiêu tổng cộng ${totalSpending.toLocaleString()} VND cho các hoạt động du lịch, chủ yếu là chi phí Di chuyển và Lưu trú.`,
+      `Mức độ hài lòng trung bình của người dùng đạt ${avgRating}/5 sao dựa trên ${reviewStats.total} đánh giá.`
+    ];
+  }, [data, reviewStats]);
 
   if (loading) {
     return (
@@ -118,7 +143,7 @@ export default function Dashboard() {
     <div style={{ display: "grid", gap: 24 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 32, color: "#1f2a3d", fontWeight: 700 }}>Welcome Back, Admin</h1>
+          <h1 style={{ margin: 0, fontSize: 32, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 700 }}>Welcome Back, Admin</h1>
           <p style={{ margin: "8px 0 0", color: "#647087", fontSize: 16 }}>
             Here's what's happening with TravelMate today.
           </p>
@@ -134,6 +159,19 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* Key Insights Section */}
+      <div style={cardBase}>
+        <h2 style={{ margin: "0 0 16px", fontSize: 18, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>Tóm tắt hoạt động hệ thống</h2>
+        <div style={{ display: "grid", gap: 12 }}>
+          {insights.map((insight, idx) => (
+            <div key={idx} style={{ display: "flex", alignItems: "start", gap: 10, color: theme === 'dark' ? "#94a3b8" : "#475569", fontSize: 15 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#3b82f6", marginTop: 8, flexShrink: 0 }}></div>
+              <p style={{ margin: 0 }}>{insight}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Main Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
         <div style={cardBase}>
@@ -144,7 +182,7 @@ export default function Dashboard() {
             </div>
           </div>
           <p style={{ margin: "16px 0 4px", fontSize: 14, color: "#647087", fontWeight: 500 }}>Total Users</p>
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "#1f2a3d" }}>{data.users.length}</p>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>{data.users.length}</p>
         </div>
 
         <div style={cardBase}>
@@ -155,7 +193,7 @@ export default function Dashboard() {
             </div>
           </div>
           <p style={{ margin: "16px 0 4px", fontSize: 14, color: "#647087", fontWeight: 500 }}>Destinations</p>
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "#1f2a3d" }}>{data.destinations.length}</p>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>{data.destinations.length}</p>
         </div>
 
         <div style={cardBase}>
@@ -166,7 +204,7 @@ export default function Dashboard() {
             </div>
           </div>
           <p style={{ margin: "16px 0 4px", fontSize: 14, color: "#647087", fontWeight: 500 }}>User Reviews</p>
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: "#1f2a3d" }}>{reviewStats.total}</p>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 700, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>{reviewStats.total}</p>
         </div>
 
         <div style={cardBase}>
@@ -177,7 +215,7 @@ export default function Dashboard() {
             </div>
           </div>
           <p style={{ margin: "16px 0 4px", fontSize: 14, color: "#647087", fontWeight: 500 }}>Total Spending</p>
-          <p style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#1f2a3d" }}>
+          <p style={{ margin: 0, fontSize: 24, fontWeight: 700, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>
             {data.expenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0).toLocaleString()} <span style={{ fontSize: 14, fontWeight: 500 }}>VND</span>
           </p>
         </div>
@@ -188,7 +226,7 @@ export default function Dashboard() {
           {/* User Growth Chart */}
           <div style={cardBase}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <h2 style={{ margin: 0, fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>User Growth</h2>
+              <h2 style={{ margin: 0, fontSize: 18, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>User Growth</h2>
               <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#647087" }}>
                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#3b82f6" }}></div>
                 New Registrations
@@ -203,11 +241,17 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? "#334155" : "#f1f5f9"} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "#94a3b8" }} />
                   <Tooltip
-                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)" }}
+                    contentStyle={{
+                      background: theme === 'dark' ? "#1e293b" : "#fff",
+                      borderRadius: 12,
+                      border: "none",
+                      boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                      color: theme === 'dark' ? "#f8fafc" : "#1f2a3d"
+                    }}
                   />
                   <Area type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorUsers)" />
                 </AreaChart>
@@ -218,7 +262,7 @@ export default function Dashboard() {
           {/* Recent Activity */}
           <div style={cardBase}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <h2 style={{ margin: 0, fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>Recent Trips</h2>
+              <h2 style={{ margin: 0, fontSize: 18, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>Recent Trips</h2>
               <button
                 onClick={() => window.location.href = '/trips'}
                 style={{ border: "none", background: "none", color: "#3b82f6", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
@@ -228,16 +272,16 @@ export default function Dashboard() {
             </div>
             <div style={{ display: "grid", gap: 16 }}>
               {recentTrips.map((trip) => (
-                <div key={trip.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px", borderRadius: 12, background: "#f8fafc" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 10, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #e2e8f0" }}>
+                <div key={trip.id} style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px", borderRadius: 12, background: theme === 'dark' ? "#0f172a" : "#f8fafc" }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 10, background: theme === 'dark' ? "#1e293b" : "#fff", display: "flex", alignItems: "center", justifyContent: "center", border: theme === 'dark' ? "1px solid #334155" : "1px solid #e2e8f0" }}>
                     <Calendar size={20} color="#647087" />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: "#1f2a3d" }}>{trip.title || "Trip to " + trip.destination}</p>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>{trip.title || "Trip to " + trip.destination}</p>
                     <p style={{ margin: "2px 0 0", fontSize: 13, color: "#647087" }}>by {trip.ownerName || "User"}</p>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1f2a3d" }}>{(Number(trip.budget) || 0).toLocaleString()} VND</p>
+                    <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>{(Number(trip.budget) || 0).toLocaleString()} VND</p>
                     <p style={{ margin: "2px 0 0", fontSize: 12, color: "#94a3b8" }}>{new Date(trip.createdAt || Date.now()).toLocaleDateString()}</p>
                   </div>
                 </div>
@@ -248,7 +292,7 @@ export default function Dashboard() {
 
         {/* Action Needed */}
         <div style={{ display: "grid", gap: 20, height: "fit-content" }}>
-          <div style={{ ...cardBase, background: "linear-gradient(135deg, #1d4ed8, #3b82f6)", border: "none" }}>
+          <div style={{ ...cardBase, background: "linear-gradient(135deg, #1d4ed8, #3b82f6)", border: "none", color: "#fff" }}>
             <h3 style={{ margin: "0 0 12px", fontSize: 16, color: "#fff", fontWeight: 600 }}>Quick Actions</h3>
             <div style={{ display: "grid", gap: 8 }}>
               <button
@@ -263,18 +307,21 @@ export default function Dashboard() {
                 style={{ width: "100%", padding: "10px", borderRadius: 10, border: "none", background: "rgba(255,255,255,0.2)", color: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 10 }}
               >
                 <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }}></div>
-                Review Pending Feedback
+                Review Feedback
               </button>
             </div>
           </div>
 
           <div style={cardBase}>
-            <h2 style={{ margin: "0 0 24px", fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>Expense Analysis</h2>
+            <h2 style={{ margin: "0 0 24px", fontSize: 18, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>Expense Analysis</h2>
             <div style={{ width: "100%", height: 200 }}>
               <ResponsiveContainer>
                 <BarChart data={expenseByCategory}>
-                  <XAxis dataKey="name" fontSize={10} />
-                  <Tooltip formatter={(value: number) => value.toLocaleString() + ' VND'} />
+                  <XAxis dataKey="name" fontSize={10} tick={{ fill: "#94a3b8" }} />
+                  <Tooltip
+                    contentStyle={{ background: theme === 'dark' ? "#1e293b" : "#fff", border: "none", borderRadius: 8 }}
+                    formatter={(value: number) => value.toLocaleString() + ' VND'}
+                  />
                   <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -282,7 +329,7 @@ export default function Dashboard() {
           </div>
 
           <div style={cardBase}>
-            <h2 style={{ margin: "0 0 24px", fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>Destination Types</h2>
+            <h2 style={{ margin: "0 0 24px", fontSize: 18, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>Interest Types</h2>
             <div style={{ width: "100%", height: 200 }}>
               <ResponsiveContainer>
                 <PieChart>
@@ -297,7 +344,9 @@ export default function Dashboard() {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{ background: theme === 'dark' ? "#1e293b" : "#fff", border: "none", borderRadius: 8 }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>

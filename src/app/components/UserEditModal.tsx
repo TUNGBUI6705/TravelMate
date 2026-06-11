@@ -37,7 +37,12 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }: UserEdi
     e.preventDefault();
     setLoading(true);
     try {
-      await onSave(user.id, formData);
+      // Sync isBanned field with status
+      const updatedData = {
+        ...formData,
+        isBanned: formData.status === "banned"
+      };
+      await onSave(user.id, updatedData);
       onClose();
     } catch (error: any) {
       alert("Lỗi khi cập nhật người dùng: " + error.message);
@@ -137,6 +142,18 @@ export default function UserEditModal({ isOpen, onClose, onSave, user }: UserEdi
               value={formData.email}
               style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid #d9e0ea", outline: "none", background: "#f8fafc", cursor: "not-allowed" }}
             />
+          </div>
+
+          {/* Read-only System Info */}
+          <div style={{ padding: 12, background: "#f1f5f9", borderRadius: 8, display: "grid", gap: 4, fontSize: 12 }}>
+            <p style={{ margin: 0 }}><strong>User ID:</strong> {user.id}</p>
+            <p style={{ margin: 0 }}><strong>Ngày tham gia:</strong> {user.createdAt ? new Date(Number(user.createdAt)).toLocaleString() : "N/A"}</p>
+            {user.status === "banned" && (
+              <>
+                <p style={{ margin: 0, color: "#e11d48" }}><strong>Ngày bị cấm:</strong> {user.bannedAt ? new Date(Number(user.bannedAt)).toLocaleString() : "N/A"}</p>
+                <p style={{ margin: 0, color: "#e11d48" }}><strong>Lý do:</strong> {user.bannedReason || "Không có"}</p>
+              </>
+            )}
           </div>
 
           <div style={{ display: "grid", gap: 8 }}>

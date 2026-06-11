@@ -14,7 +14,6 @@ export interface AdminPlace {
   id: string;
   name: string;
   location: string;
-  category: string;
   status: PlaceStatus;
 }
 

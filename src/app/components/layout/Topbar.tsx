@@ -1,5 +1,7 @@
-import { Menu, Bell, Search, User } from "lucide-react";
+import { Menu, Search, User, Moon, Sun } from "lucide-react";
 import { useLocation } from "react-router";
+import { useTheme } from "../../utils/ThemeContext";
+import NotificationCenter from "../NotificationCenter";
 
 interface TopbarProps {
   sidebarCollapsed: boolean;
@@ -18,6 +20,7 @@ const routeLabels: Record<string, string> = {
 
 export function Topbar({ sidebarCollapsed, onToggleSidebar }: TopbarProps) {
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const title = routeLabels[location.pathname] || "Admin Panel";
 
   return (
@@ -29,8 +32,8 @@ export function Topbar({ sidebarCollapsed, onToggleSidebar }: TopbarProps) {
         top: 0,
         height: 64,
         transition: "left 200ms ease",
-        borderBottom: "1px solid #e8ecf3",
-        background: "#ffffff",
+        borderBottom: theme === 'dark' ? "1px solid #334155" : "1px solid #e8ecf3",
+        background: theme === 'dark' ? "#1e293b" : "#ffffff",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -44,8 +47,8 @@ export function Topbar({ sidebarCollapsed, onToggleSidebar }: TopbarProps) {
           onClick={onToggleSidebar}
           style={{
             border: "none",
-            background: "#f1f5f9",
-            color: "#647087",
+            background: theme === 'dark' ? "#334155" : "#f1f5f9",
+            color: theme === 'dark' ? "#94a3b8" : "#647087",
             borderRadius: 8,
             width: 36,
             height: 36,
@@ -57,32 +60,53 @@ export function Topbar({ sidebarCollapsed, onToggleSidebar }: TopbarProps) {
         >
           <Menu size={20} />
         </button>
-        <h2 style={{ margin: 0, fontSize: 18, color: "#1f2a3d", fontWeight: 600 }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 18, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>{title}</h2>
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <button
+          onClick={toggleTheme}
+          style={{
+            border: "none",
+            background: "none",
+            color: theme === 'dark' ? "#f59e0b" : "#647087",
+            cursor: "pointer",
+            padding: 8,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            transition: "background 0.2s"
+          }}
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
+
         <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <Search size={18} color="#94a3b8" style={{ position: "absolute", left: 10 }} />
           <input
             placeholder="Search anything..."
             style={{
-              background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8,
-              padding: "8px 12px 8px 34px", fontSize: 13, outline: "none", width: 220
+              background: theme === 'dark' ? "#0f172a" : "#f8fafc",
+              border: theme === 'dark' ? "1px solid #334155" : "1px solid #e2e8f0",
+              borderRadius: 8,
+              padding: "8px 12px 8px 34px",
+              fontSize: 13,
+              outline: "none",
+              width: 220,
+              color: theme === 'dark' ? "#f8fafc" : "#1f2a3d"
             }}
           />
         </div>
 
-        <button style={{ border: "none", background: "none", color: "#647087", cursor: "pointer", position: "relative" }}>
-          <Bell size={20} />
-          <div style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, background: "#ef4444", borderRadius: "50%", border: "2px solid #fff" }}></div>
-        </button>
+        <NotificationCenter />
 
-        <div style={{ height: 24, width: 1, background: "#e2e8f0" }}></div>
+        <div style={{ height: 24, width: 1, background: theme === 'dark' ? "#334155" : "#e2e8f0" }}></div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
           <div style={{ textAlign: "right" }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1f2a3d" }}>Admin User</p>
-            <p style={{ margin: 0, fontSize: 11, color: "#647087" }}>Super Admin</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: theme === 'dark' ? "#f8fafc" : "#1f2a3d" }}>Admin User</p>
+            <p style={{ margin: 0, fontSize: 11, color: "#94a3b8" }}>Super Admin</p>
           </div>
           <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#1d4ed8", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
             <User size={20} />

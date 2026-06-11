@@ -5,6 +5,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line
 } from 'recharts';
 import { Wallet, TrendingUp, Calendar, Filter, Download } from "lucide-react";
+import { useTheme } from "../utils/ThemeContext";
 
 function renderCell(value) {
   if (value === null || value === undefined) return "";
@@ -21,10 +22,13 @@ function renderCell(value) {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 export default function ExpenseList() {
+  const { theme } = useTheme();
   const [expenses, setExpenses] = useState([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     let isMounted = true;
@@ -45,6 +49,15 @@ export default function ExpenseList() {
       isMounted = false;
     };
   }, []);
+
+  const filteredExpenses = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return expenses.filter(exp => {
+      const category = (exp.category || "").toLowerCase();
+      const desc = (exp.description || exp.note || "").toLowerCase();
+      return category.includes(normalized) || desc.includes(normalized);
+    });
+  }, [expenses, query]);
 
   const handleExportCSV = () => {
     const headers = ["ID", "Amount", "Category", "Date", "Description"];
@@ -98,59 +111,40 @@ export default function ExpenseList() {
     return Object.entries(catMap).map(([name, value]) => ({ name, value }));
   }, [expenses]);
 
-  const columns = useMemo(() => {
-    const keys = new Set();
-    expenses.forEach((item) => {
-      Object.keys(item || {}).forEach((key) => keys.add(key));
-    });
-    return ["id", "amount", "category", "date", ...Array.from(keys).filter((key) => !["id", "amount", "category", "date"].includes(key))];
-  }, [expenses]);
-
-  const filteredExpenses = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-    return expenses.filter((expense) => {
-      if (!normalizedQuery) return true;
-      return columns.some((column) => {
-        const value = renderCell(expense[column]);
-        return value.toLowerCase().includes(normalizedQuery);
-      });
-    });
-  }, [columns, query, expenses]);
-
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <div>
-        <h1 style={{ margin: 0, fontSize: 28, color: "#1f2a3d" }}>Expense Management</h1>
-        <p style={{ margin: "8px 0 0", color: "#647087" }}>
-          Track and analyze spending across all trips.
+        <h1 style={{ margin: 0, fontSize: 28, color: isDark ? "#f8fafc" : "#1f2a3d" }}>Quản lý chi tiêu</h1>
+        <p style={{ margin: "8px 0 0", color: "#94a3b8" }}>
+          Theo dõi và phân tích chi tiêu trên tất cả các chuyến đi.
         </p>
       </div>
 
       {/* Stats Cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 12, border: "1px solid #e8ecf3", display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ background: "#eff6ff", padding: 12, borderRadius: 10, color: "#1d4ed8" }}><Wallet /></div>
+        <div style={{ background: isDark ? "#1e293b" : "#fff", padding: 20, borderRadius: 12, border: isDark ? "1px solid #334155" : "1px solid #e8ecf3", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: isDark ? "rgba(59,130,246,0.1)" : "#eff6ff", padding: 12, borderRadius: 10, color: "#3b82f6" }}><Wallet /></div>
           <div>
-            <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>Total Expenses</p>
-            <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: "#1f2a3d" }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>Tổng chi tiêu</p>
+            <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: isDark ? "#f8fafc" : "#1f2a3d" }}>
               {stats.total.toLocaleString()} VND
             </p>
           </div>
         </div>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 12, border: "1px solid #e8ecf3", display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ background: "#ecfdf5", padding: 12, borderRadius: 10, color: "#059669" }}><TrendingUp /></div>
+        <div style={{ background: isDark ? "#1e293b" : "#fff", padding: 20, borderRadius: 12, border: isDark ? "1px solid #334155" : "1px solid #e8ecf3", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: isDark ? "rgba(16,185,129,0.1)" : "#ecfdf5", padding: 12, borderRadius: 10, color: "#10b981" }}><TrendingUp /></div>
           <div>
-            <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>Average per Record</p>
-            <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: "#1f2a3d" }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>Trung bình mỗi bản ghi</p>
+            <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: isDark ? "#f8fafc" : "#1f2a3d" }}>
               {stats.avg.toLocaleString(undefined, { maximumFractionDigits: 0 })} VND
             </p>
           </div>
         </div>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 12, border: "1px solid #e8ecf3", display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ background: "#fff7ed", padding: 12, borderRadius: 10, color: "#d97706" }}><Calendar /></div>
+        <div style={{ background: isDark ? "#1e293b" : "#fff", padding: 20, borderRadius: 12, border: isDark ? "1px solid #334155" : "1px solid #e8ecf3", display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{ background: isDark ? "rgba(245,158,11,0.1)" : "#fff7ed", padding: 12, borderRadius: 10, color: "#f59e0b" }}><Calendar /></div>
           <div>
-            <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>Total Records</p>
-            <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: "#1f2a3d" }}>
+            <p style={{ margin: 0, fontSize: 13, color: "#647087" }}>Tổng số bản ghi</p>
+            <p style={{ margin: "4px 0 0", fontSize: 20, fontWeight: 700, color: isDark ? "#f8fafc" : "#1f2a3d" }}>
               {stats.count}
             </p>
           </div>
@@ -159,23 +153,26 @@ export default function ExpenseList() {
 
       {/* Charts Section */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: 20 }}>
-        <div style={{ background: "#fff", padding: 20, borderRadius: 12, border: "1px solid #e8ecf3" }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 16, color: "#1f2a3d" }}>Spending Trend (Last 7 Days)</h3>
+        <div style={{ background: isDark ? "#1e293b" : "#fff", padding: 20, borderRadius: 12, border: isDark ? "1px solid #334155" : "1px solid #e8ecf3" }}>
+          <h3 style={{ margin: "0 0 20px", fontSize: 16, color: isDark ? "#f8fafc" : "#1f2a3d" }}>Xu hướng chi tiêu (7 ngày qua)</h3>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value/1000}k`} />
-                <Tooltip formatter={(value) => [`${value.toLocaleString()} VND`, "Amount"]} />
-                <Line type="monotone" dataKey="amount" stroke="#1d4ed8" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? "#334155" : "#f1f5f9"} />
+                <XAxis dataKey="date" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "#94a3b8" }} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value/1000}k`} tick={{ fill: "#94a3b8" }} />
+                <Tooltip
+                  contentStyle={{ background: isDark ? "#1e293b" : "#fff", border: "none", borderRadius: 8, color: isDark ? "#f8fafc" : "#1f2a3d" }}
+                  formatter={(value) => [`${value.toLocaleString()} VND`, "Số tiền"]}
+                />
+                <Line type="monotone" dataKey="amount" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div style={{ background: "#fff", padding: 20, borderRadius: 12, border: "1px solid #e8ecf3" }}>
-          <h3 style={{ margin: "0 0 20px", fontSize: 16, color: "#1f2a3d" }}>Expenses by Category</h3>
+        <div style={{ background: isDark ? "#1e293b" : "#fff", padding: 20, borderRadius: 12, border: isDark ? "1px solid #334155" : "1px solid #e8ecf3" }}>
+          <h3 style={{ margin: "0 0 20px", fontSize: 16, color: isDark ? "#f8fafc" : "#1f2a3d" }}>Chi tiêu theo danh mục</h3>
           <div style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer>
               <PieChart>
@@ -192,7 +189,10 @@ export default function ExpenseList() {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => `${value.toLocaleString()} VND`} />
+                <Tooltip
+                  contentStyle={{ background: isDark ? "#1e293b" : "#fff", border: "none", borderRadius: 8 }}
+                  formatter={(value) => `${value.toLocaleString()} VND`}
+                />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -203,38 +203,48 @@ export default function ExpenseList() {
       {/* Table Section */}
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0, fontSize: 18, color: "#1f2a3d" }}>Recent Transactions</h2>
+          <h2 style={{ margin: 0, fontSize: 18, color: isDark ? "#f8fafc" : "#1f2a3d" }}>Giao dịch gần đây</h2>
           <div style={{ display: "flex", gap: 12 }}>
             <button
               onClick={handleExportCSV}
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 500, color: "#475569" }}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
+                background: isDark ? "#334155" : "#f8fafc",
+                border: isDark ? "1px solid #475569" : "1px solid #e2e8f0",
+                borderRadius: 8, cursor: "pointer", fontSize: 14, fontWeight: 500,
+                color: isDark ? "#cbd5e1" : "#475569"
+              }}
             >
-              <Download size={16} /> Export CSV
+              <Download size={16} /> Xuất CSV
             </button>
             <div style={{ position: "relative" }}>
               <Filter size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94a3b8" }} />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Filter expenses..."
-                style={{ height: 40, border: "1px solid #d9e0ea", borderRadius: 8, padding: "0 12px 0 36px", fontSize: 14, outline: "none" }}
+                placeholder="Lọc chi tiêu..."
+                style={{
+                  height: 40, border: isDark ? "1px solid #334155" : "1px solid #d9e0ea",
+                  borderRadius: 8, padding: "0 12px 0 36px", fontSize: 14, outline: "none",
+                  background: isDark ? "#1e293b" : "#fff", color: isDark ? "#f8fafc" : "#1f2a3d"
+                }}
               />
             </div>
           </div>
         </div>
 
-        <div style={{ background: "#fff", border: "1px solid #e8ecf3", borderRadius: 12, overflow: "auto" }}>
+        <div style={{ background: isDark ? "#1e293b" : "#fff", border: isDark ? "1px solid #334155" : "1px solid #e8ecf3", borderRadius: 12, overflow: "auto" }}>
           {loading && (
             <div style={{ padding: 28, textAlign: "center", color: "#647087" }}>
-              Loading expense records...
+              Đang tải dữ liệu chi tiêu...
             </div>
           )}
           {!loading && !error && (
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "#f7f9fc" }}>
-                  {["Date", "Category", "Amount", "Description"].map((col) => (
-                    <th key={col} style={{ textAlign: "left", padding: "12px 14px", fontSize: 12, color: "#5e6b81", borderBottom: "1px solid #e8ecf3" }}>
+                <tr style={{ background: isDark ? "#334155" : "#f7f9fc" }}>
+                  {["Ngày", "Danh mục", "Số tiền", "Mô tả"].map((col) => (
+                    <th key={col} style={{ textAlign: "left", padding: "12px 14px", fontSize: 12, color: isDark ? "#94a3b8" : "#5e6b81", borderBottom: isDark ? "1px solid #1e293b" : "1px solid #e8ecf3" }}>
                       {col}
                     </th>
                   ))}
@@ -242,19 +252,19 @@ export default function ExpenseList() {
               </thead>
               <tbody>
                 {filteredExpenses.map((expense) => (
-                  <tr key={expense.id} className="table-row">
-                    <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#4d5a72", fontSize: 13 }}>
+                  <tr key={expense.id} style={{ borderBottom: isDark ? "1px solid #334155" : "1px solid #eef2f8" }}>
+                    <td style={{ padding: "12px 14px", color: isDark ? "#cbd5e1" : "#4d5a72", fontSize: 13 }}>
                       {new Date(expense.date || expense.createdAt).toLocaleDateString()}
                     </td>
-                    <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8" }}>
-                      <span style={{ background: "#f1f5f9", padding: "2px 8px", borderRadius: 12, fontSize: 11, color: "#475569" }}>
-                        {expense.category || "Uncategorized"}
+                    <td style={{ padding: "12px 14px" }}>
+                      <span style={{ background: isDark ? "#0f172a" : "#f1f5f9", padding: "2px 8px", borderRadius: 12, fontSize: 11, color: isDark ? "#94a3b8" : "#475569" }}>
+                        {expense.category || "Chưa phân loại"}
                       </span>
                     </td>
-                    <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#1f2a3d", fontWeight: 600 }}>
+                    <td style={{ padding: "12px 14px", color: isDark ? "#f8fafc" : "#1f2a3d", fontWeight: 600 }}>
                       {Number(expense.amount || 0).toLocaleString()} VND
                     </td>
-                    <td style={{ padding: "12px 14px", borderBottom: "1px solid #eef2f8", color: "#647087", fontSize: 13 }}>
+                    <td style={{ padding: "12px 14px", color: isDark ? "#94a3b8" : "#647087", fontSize: 13 }}>
                       {expense.description || expense.note || "-"}
                     </td>
                   </tr>
@@ -267,4 +277,3 @@ export default function ExpenseList() {
     </div>
   );
 }
-
